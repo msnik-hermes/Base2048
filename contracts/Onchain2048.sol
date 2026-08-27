@@ -242,10 +242,14 @@ contract Onchain2048 {
     }
 
     function safeTransferFrom(address from, address to, uint256 id) external {
-        safeTransferFrom(from, to, id, "");
+        _safeTransfer(from, to, id, "");
     }
 
     function safeTransferFrom(address from, address to, uint256 id, bytes calldata data) public {
+        _safeTransfer(from, to, id, data);
+    }
+
+    function _safeTransfer(address from, address to, uint256 id, bytes memory data) internal {
         transferFrom(from, to, id);
         if (to.code.length == 0) return;
         if (IERC721Receiver(to).onERC721Received(msg.sender, from, id, data)
