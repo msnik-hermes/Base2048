@@ -26,7 +26,7 @@ async function rpcCall(method: string, params: unknown[] = []): Promise<string> 
   }
 }
 
-/** شماره بلاک و گس Base را زنده می‌خواند؛ در صورت قطع شبکه شبیه‌سازی جایگزین می‌شود */
+/** Reads Base block height + gas price live; falls back to simulation if the RPC is unreachable */
 export function useBaseChain(): ChainState {
   const [state, setState] = useState<ChainState>({ block: 0, gwei: 0.0042, live: false });
 
@@ -59,13 +59,13 @@ export function useBaseChain(): ChainState {
   return state;
 }
 
-/** اعداد فارسی با جداکننده */
-export function faNum(n: number | string): string {
+/** Locale-formatted numbers (en-US) */
+export function fmtNum(n: number | string): string {
   const num = typeof n === 'string' ? parseFloat(n) : n;
   if (Number.isNaN(num)) return String(n);
-  return num.toLocaleString('fa-IR', { maximumFractionDigits: 3 });
+  return num.toLocaleString('en-US', { maximumFractionDigits: 3 });
 }
 
-export function faInt(n: number): string {
-  return Math.floor(n).toLocaleString('fa-IR');
+export function fmtInt(n: number): string {
+  return Math.floor(n).toLocaleString('en-US');
 }

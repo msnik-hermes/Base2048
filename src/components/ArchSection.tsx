@@ -22,17 +22,17 @@ function PackingViz({ tiles }: { tiles: Tile[] }) {
   const nibbles = nibbleGrid(tiles);
   const packed = packBoard(tiles);
   const hexChars = packed.toString(16).padStart(16, '0').toUpperCase();
-  // کاراکتر هگز متناظر با نیبل i — از LSB سمت راست خوانده می‌شود
+  // hex char for nibble i — read from the right (LSB)
   const hexByNibble = [...hexChars].reverse();
 
   return (
     <Reveal>
       <div className="rounded-2xl border border-line bg-panel p-6 md:p-8">
-        <div className="grid gap-8 lg:grid-cols-[auto_1fr] items-start" dir="ltr">
-          {/* شبکه نیبل‌ها */}
+        <div className="grid gap-8 lg:grid-cols-[auto_1fr] items-start">
+          {/* nibble grid */}
           <div>
-            <p className="mb-3 font-mono text-[11px] text-slate-500" dir="rtl">
-              روی هر خانه برو — نیبل متناظرش در uint64 روشن می‌شود
+            <p className="mb-3 font-mono text-[11px] text-slate-500">
+              Hover a cell — its nibble lights up inside the uint64
             </p>
             <div className="grid grid-cols-4 gap-2 w-fit">
               {nibbles.map((n, i) => {
@@ -62,9 +62,9 @@ function PackingViz({ tiles }: { tiles: Tile[] }) {
             </div>
           </div>
 
-          {/* نمایش بسته‌بندی */}
+          {/* packing layout */}
           <div className="min-w-0">
-            <p className="font-mono text-xs text-slate-500 mb-2" dir="rtl">یک storage slot — ۶۴ بیت، ۱۶ نیبل:</p>
+            <p className="font-mono text-xs text-slate-500 mb-2">One storage slot — 64 bits, 16 nibbles:</p>
             <div className="flex flex-wrap gap-1.5 mb-4">
               {nibbles.map((n, i) => {
                 const active = hover === i;
@@ -88,29 +88,40 @@ function PackingViz({ tiles }: { tiles: Tile[] }) {
             </div>
 
             <div className="rounded-xl bg-ink border border-line/60 p-4 mb-4 overflow-x-auto">
-              <p className="font-mono text-[11px] text-slate-500 mb-1" dir="rtl">
-                خانهٔ (r,c) → بیت‌های <span className="text-cyan-bright">{hover !== null ? `${hover * 4}..${hover * 4 + 3}` : 'r·16 + c·4'}</span>
+              <p className="font-mono text-[11px] text-slate-500 mb-1">
+                cell (r,c) → bits <span className="text-cyan-bright">{hover !== null ? `${hover * 4}..${hover * 4 + 3}` : 'r·16 + c·4'}</span>
               </p>
-              <p className="font-mono text-sm text-mint break-all" dir="ltr">
+              <p className="font-mono text-sm text-mint break-all">
                 uint64 board = 0x{hexChars};
               </p>
             </div>
 
-            <ul className="space-y-2.5 text-[13px] leading-6 text-slate-400" dir="rtl">
+            <ul className="space-y-2.5 text-[13px] leading-6 text-slate-400">
               <li className="flex gap-2.5">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-base" />
                 <span>
-                  هر کاشی فقط <b className="text-slate-200">۴ بیت</b> فضا می‌گیرد — توانِ ۲ به‌جای خود عدد؛
-                  <span className="font-mono text-base-bright" dir="ltr"> 0xB = 2048</span>.
+                  Each tile costs just <b className="text-slate-200">4 bits</b> — it stores the exponent, not the
+                  number: <span className="font-mono text-base-bright">0xB = 2048</span>.
                 </span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-bright" />
-                <span>کل وضعیت هر بازیکن (برد + امتیاز + حرکت‌ها + وضعیت) در <b className="text-slate-200">یک slot</b> جا می‌شود: کمترین SLOAD/SSTORE ممکن.</span>
+                <span>
+                  A player's whole run (board + score + moves + state) fits in <b className="text-slate-200">one slot</b> —
+                  the minimum possible SLOAD/SSTORE per move.
+                </span>
               </li>
               <li className="flex gap-2.5">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-mint" />
-                <span>حرکت بی‌اثر با <span className="font-mono text-rose" dir="ltr">NoopMove()</span> ریورت می‌شود تا گاز کسی هدر نرود.</span>
+                <span>
+                  A move that changes nothing reverts with <span className="font-mono text-rose">NoopMove()</span> so no gas is wasted.
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                <span>
+                  Crossing 4096 points freezes the board into a <b className="text-slate-200">Snapshot</b> and mints the ERC-721 trophy in the same transaction.
+                </span>
               </li>
             </ul>
           </div>
@@ -122,27 +133,33 @@ function PackingViz({ tiles }: { tiles: Tile[] }) {
 
 const MECHANICS = [
   {
-    num: '۰۱',
-    title: 'ورودی = سهم تو از pot',
-    text: 'هر start() با پرداخت entryFee (پیش‌فرض ۰٫۰۰۰۰۴۲ اتر) انجام می‌شود؛ پول مستقیم در قرارداد می‌ماند و pot را می‌سازد.',
+    num: '01',
+    title: 'Entry = your share of the pot',
+    text: 'Every start() pays entryFee (default 0.000042 ETH); the money stays in the contract and builds the pot.',
     color: 'text-base-bright',
   },
   {
-    num: '۰۲',
-    title: 'حرکت = تراکنش move(dir)',
-    text: 'اسلاید و ادغام با عملیات بیتی روی نیبل‌ها؛ بالا/پایین با ترانهاده‌ی ماتریس به چپ/راست تبدیل می‌شود. بعد کاشی جدید با آنتروپی blockhash spawn می‌شود.',
+    num: '02',
+    title: 'Move = move(dir) transaction',
+    text: 'Slide and merge with pure bit ops on nibbles; up/down run through the matrix transpose as left/right. A fresh tile spawns from blockhash entropy afterwards.',
     color: 'text-cyan-bright',
   },
   {
-    num: '۰۳',
-    title: 'اولین ۲۰۴۸ = ۹۰٪ pot',
-    text: 'به‌محض رسیدن نیبل به ۱۱، قرارداد جایزه را همان‌جا واریز می‌کند و ۱۰٪ به‌عنوان کارمزد خانه در houseCut انباشته می‌شود.',
+    num: '03',
+    title: 'First 2048 takes 90% of the pot',
+    text: 'The moment a nibble hits 11, the contract pays the prize out on the spot and accrues the 10% fee in houseCut.',
     color: 'text-amber',
   },
   {
-    num: '۰۴',
-    title: 'بن‌بست = GameOver',
-    text: 'اگر _hasMoves صفرِ فشرده‌شده و همسایهٔ برابر پیدا نکند، وضعیت روی ST_OVER قفل می‌شود و دور بعدی منتظر start() جدید است.',
+    num: '04',
+    title: 'Score 4096 mints the NFT trophy',
+    text: 'One-of-one ERC-721 per player. The winning board is frozen into storage and tokenURI() renders it as SVG — fully on-chain metadata, no IPFS.',
+    color: 'text-gold',
+  },
+  {
+    num: '05',
+    title: 'Dead end = GameOver',
+    text: 'If _hasMoves finds neither an empty cell nor equal neighbours, the run locks into ST_OVER and the next round waits for a new start().',
     color: 'text-mint',
   },
 ];
@@ -153,8 +170,8 @@ export function ArchSection({ tiles }: { tiles: Tile[] }) {
       <SectionHeader
         index="01"
         kicker="Storage Architecture"
-        title="کل بازی در ۶۴ بیت"
-        lead="به‌جای آرایه‌های پرخرج، صفحه‌ی ۲۰۴۸ به‌صورت فشرده در یک uint64 ذخیره می‌شود. این یعنی هر حرکت فقط یک slot را لمس می‌کند و گاز در حد یک انتقال ساده باقی می‌ماند."
+        title="The whole game in 64 bits"
+        lead="No expensive arrays: the 4×4 board is packed into a single uint64, so every move touches exactly one storage slot and gas stays close to a plain transfer. Push your score to 4096 and that same slot gets minted into a one-of-one NFT."
       />
 
       <PackingViz tiles={tiles} />
@@ -167,7 +184,7 @@ export function ArchSection({ tiles }: { tiles: Tile[] }) {
                 {m.num}
               </span>
               <div>
-                <h3 className="font-display text-xl text-white mb-2 group-hover:translate-x-[-4px] transition-transform">
+                <h3 className="font-display text-xl text-white mb-2 group-hover:translate-x-1 transition-transform">
                   {m.title}
                 </h3>
                 <p className="text-sm leading-7 text-slate-400">{m.text}</p>
@@ -177,35 +194,35 @@ export function ArchSection({ tiles }: { tiles: Tile[] }) {
         ))}
       </div>
 
-      {/* جدول توابع */}
+      {/* function table */}
       <Reveal className="mt-14">
         <div className="overflow-hidden rounded-2xl border border-line">
           <div className="flex items-center justify-between bg-panel px-5 py-4 border-b border-line">
-            <h3 className="font-display text-xl text-white">رابط قرارداد</h3>
-            <span className="font-mono text-[11px] text-slate-500" dir="ltr">interface: Onchain2048</span>
+            <h3 className="font-display text-xl text-white">Contract interface</h3>
+            <span className="font-mono text-[11px] text-slate-500">interface: Onchain2048</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-right min-w-[640px]">
+            <table className="w-full text-left min-w-[640px]">
               <thead>
                 <tr className="bg-ink text-[11px] text-slate-500">
-                  <th className="px-5 py-3 font-medium">تابع</th>
-                  <th className="px-5 py-3 font-medium">نوع</th>
-                  <th className="px-5 py-3 font-medium">گاز تقریبی</th>
-                  <th className="px-5 py-3 font-medium">توضیح</th>
+                  <th className="px-5 py-3 font-medium">Function</th>
+                  <th className="px-5 py-3 font-medium">Kind</th>
+                  <th className="px-5 py-3 font-medium">Gas</th>
+                  <th className="px-5 py-3 font-medium">What it does</th>
                 </tr>
               </thead>
               <tbody>
                 {FUNCTIONS.map((f) => (
                   <tr key={f.name} className="border-t border-line/60 transition-colors hover:bg-base/[0.04]">
                     <td className="px-5 py-4">
-                      <p className="font-mono text-[13px] text-white" dir="ltr">{f.signature}</p>
+                      <p className="font-mono text-[13px] text-white">{f.signature}</p>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`rounded-md px-2 py-1 font-mono text-[10px] ${KIND_STYLE[f.kind]}`}>
                         {KIND_LABEL[f.kind]}
                       </span>
                     </td>
-                    <td className="px-5 py-4 font-mono text-xs text-slate-400" dir="ltr">{f.gas}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-slate-400">{f.gas}</td>
                     <td className="px-5 py-4 text-[13px] leading-6 text-slate-400">{f.desc}</td>
                   </tr>
                 ))}

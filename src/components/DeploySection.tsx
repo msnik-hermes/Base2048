@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { DEPLOY_MAINNET, DEPLOY_TESTNET, INTERACT_COMMANDS } from '../data/contract';
 import { randomHash } from '../game/logic';
-import { faInt } from '../hooks/useBaseChain';
+import { fmtInt } from '../hooks/useBaseChain';
 import { Reveal, SectionHeader } from './ui';
 
 function CodeBlock({ title, code, note }: { title: string; code: string; note?: string }) {
@@ -19,7 +19,7 @@ function CodeBlock({ title, code, note }: { title: string; code: string; note?: 
     <Reveal className="group/cb">
       <div className="overflow-hidden rounded-xl border border-line bg-[#050b1c] transition-colors hover:border-base/40">
         <div className="flex items-center justify-between border-b border-line/70 bg-panel px-4 py-2.5">
-          <span className="font-mono text-[11px] text-slate-400" dir="ltr">
+          <span className="font-mono text-[11px] text-slate-400">
             <span className="text-mint">$</span> {title}
           </span>
           <button
@@ -31,7 +31,7 @@ function CodeBlock({ title, code, note }: { title: string; code: string; note?: 
             {copied ? '✓ copied' : 'copy'}
           </button>
         </div>
-        <pre className="overflow-x-auto code-scroll p-4 font-mono text-[12px] leading-[1.8] text-slate-300" dir="ltr">
+        <pre className="overflow-x-auto code-scroll p-4 font-mono text-[12px] leading-[1.8] text-slate-300">
           {code}
         </pre>
         {note && <p className="border-t border-line/60 px-4 py-2.5 text-[12px] leading-6 text-slate-500">{note}</p>}
@@ -50,10 +50,10 @@ interface SimResult {
 }
 
 const PHASE_LINES: Record<Exclude<Phase, 'idle'>, string> = {
-  compile: 'forge build — کامپایل Onchain2048.sol …',
-  broadcast: 'forge create — ارسال تراکنش ایجاد به Base …',
-  mined: 'در حال انتظار برای ماین شدن در بلاک بعدی …',
-  done: '✓ قرارداد ماین و در Basescan verify شد',
+  compile: 'forge build — compiling Onchain2048.sol …',
+  broadcast: 'forge create — broadcasting deployment to Base …',
+  mined: 'Waiting for inclusion in the next block …',
+  done: '✓ Contract mined & verified on Basescan',
 };
 
 function DeploySimulator({ liveBlock }: { liveBlock: number }) {
@@ -71,7 +71,7 @@ function DeploySimulator({ liveBlock }: { liveBlock: number }) {
     timers.current.push(
       window.setTimeout(() => {
         const address = randomHash(20);
-        const network = liveBlock > 0 ? 'Base Mainnet' : 'Base (شبیه‌سازی آفلاین)';
+        const network = liveBlock > 0 ? 'Base Mainnet' : 'Base (offline simulation)';
         setResults((r) =>
           [
             {
@@ -93,13 +93,13 @@ function DeploySimulator({ liveBlock }: { liveBlock: number }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-base/30 bg-panel shadow-[0_0_50px_rgba(0,82,255,0.12)]">
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
-        <h3 className="font-display text-xl text-white">شبیه‌ساز دیپلوی</h3>
-        <span className="rounded-md bg-base/15 px-2 py-1 font-mono text-[10px] text-base-bright" dir="ltr">
+        <h3 className="font-display text-xl text-white">Deploy simulator</h3>
+        <span className="rounded-md bg-base/15 px-2 py-1 font-mono text-[10px] text-base-bright">
           forge create --simulate
         </span>
       </div>
 
-      <div className="flex-1 p-5" dir="ltr">
+      <div className="flex-1 p-5">
         <div className="space-y-2 font-mono text-[12px] leading-6">
           {(['compile', 'broadcast', 'mined', 'done'] as const).map((p) => {
             const order = ['compile', 'broadcast', 'mined', 'done'];
@@ -130,16 +130,14 @@ function DeploySimulator({ liveBlock }: { liveBlock: number }) {
         </div>
 
         {results.length > 0 && (
-          <div className="mt-5 space-y-2.5" dir="rtl">
+          <div className="mt-5 space-y-2.5">
             {results.map((r) => (
               <div key={r.tx} className="tx-row rounded-xl border border-mint/25 bg-mint/[0.05] p-3.5">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold text-mint">{r.network}</span>
-                  <span className="font-mono text-[10px] text-slate-500" dir="ltr">
-                    block {faInt(r.block)}
-                  </span>
+                  <span className="font-mono text-[10px] text-slate-500">block {fmtInt(r.block)}</span>
                 </div>
-                <p className="font-mono text-[11px] text-slate-300 break-all" dir="ltr">
+                <p className="font-mono text-[11px] text-slate-300 break-all">
                   {r.address.slice(0, 24)}…{r.address.slice(-8)}
                 </p>
               </div>
@@ -154,10 +152,10 @@ function DeploySimulator({ liveBlock }: { liveBlock: number }) {
           disabled={active}
           className="w-full rounded-xl bg-base py-3.5 font-display text-lg text-white shadow-[0_6px_30px_rgba(0,82,255,0.45)] transition-all hover:bg-base-hi hover:shadow-[0_8px_40px_rgba(0,82,255,0.6)] active:scale-[0.98] disabled:opacity-60"
         >
-          {active ? 'در حال دیپلوی…' : phase === 'done' ? 'دیپلوی دوباره (شبیه‌سازی)' : 'دیپلوی شبیه‌سازی‌شده'}
+          {active ? 'Deploying…' : phase === 'done' ? 'Deploy again (simulated)' : 'Run simulated deploy'}
         </button>
         <p className="mt-3 text-center text-[11px] leading-5 text-slate-500">
-          این یک شبیه‌سازی آموزشی است — برای دیپلوی واقعی از دستورهای Foundry پایین استفاده کنید.
+          Educational simulation — use the Foundry commands on the left for a real deployment.
         </p>
       </div>
     </div>
@@ -170,8 +168,8 @@ export function DeploySection({ liveBlock }: { liveBlock: number }) {
       <SectionHeader
         index="03"
         kicker="Ship to Base"
-        title="دیپلوی روی Base در سه فرمان"
-        lead="قرارداد تک‌فایل است و فقط Foundry می‌خواهد. اول روی Base Sepolia تست کنید، بعد با verify روی Basescan، راهی mainnet شود — بلاک‌های ۲ ثانیه‌ای Base یعنی هر حرکت بازی تقریباً آنی ماین می‌شود."
+        title="Deploy to Base in three commands"
+        lead="The contract is a single file and only needs Foundry. Test it on Base Sepolia first, then ship to mainnet with verification on Basescan — Base's 2-second blocks mean every game move lands almost instantly."
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] items-start">
@@ -179,14 +177,14 @@ export function DeploySection({ liveBlock }: { liveBlock: number }) {
           <CodeBlock
             title="1 · deploy → Base Sepolia"
             code={DEPLOY_TESTNET}
-            note="سکه تست را از faucet.base.org بگیرید. WALLET_ALIAS خروجی cast wallet import است."
+            note="Grab test ETH from faucet.base.org. WALLET_ALIAS is the output of cast wallet import."
           />
           <CodeBlock
             title="2 · deploy → Base Mainnet"
             code={DEPLOY_MAINNET}
-            note="ورودی سازنده ۴۲۰۰۰۰۰۰۰۰۰۰۰۰۰ wei = ۰٫۰۰۰۰۴۲ اتر است؛ با گس فعلی Base هزینه‌ی دیپلوی زیر چند سنت می‌شود."
+            note="The constructor arg 42000000000000 wei = 0.000042 ETH; at current Base gas prices the whole deployment costs pennies."
           />
-          <CodeBlock title="3 · بازی از خط فرمان" code={INTERACT_COMMANDS} />
+          <CodeBlock title="3 · play from the command line" code={INTERACT_COMMANDS} />
         </div>
 
         <Reveal delay={150} className="lg:sticky lg:top-24">

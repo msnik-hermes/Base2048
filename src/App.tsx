@@ -15,29 +15,30 @@ function GameIntro({ liveBlock, gwei }: { liveBlock: number; gwei: number }) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="12" r="10" />
           </svg>
-          بازی کاملاً روی‌زنجیره‌ای روی Base
+          A fully on-chain game on Base
         </p>
-        <h1 className="font-display text-5xl leading-[1.15] text-white md:text-6xl">
-          ۲۰۴۸؛
+        <h1 className="font-display text-4xl leading-[1.15] text-white md:text-5xl">
+          2048 —<span className="text-base-bright"> every move</span>
           <br />
-          هر حرکت،<span className="text-base-bright"> یک تراکنش</span>
+          is a transaction
         </h1>
         <p className="mt-5 max-w-xl text-[15px] leading-8 text-slate-400">
-          صفحه‌ی بازی در یک <span className="font-mono text-cyan-bright" dir="ltr">uint64</span> زندگی می‌کند و
-          دقیقاً همان الگوریتم Solidity پایین صفحه، اینجا اجرا می‌شود. جهت‌ها را بزن — لاگ تراکنش‌ها همان لحظه
-          پر می‌شود و اسنپ‌شات storage جلوی چشمت عوض می‌شود.
+          The board lives in a single <span className="font-mono text-cyan-bright">uint64</span> and this page runs
+          the exact same Solidity algorithm as the contract below. Push a direction — the transaction log fills
+          instantly, and if your score crosses{' '}
+          <span className="font-mono text-gold">4096</span> the contract mints you a one-of-one NFT.
         </p>
       </div>
-      <div className="flex shrink-0 rounded-2xl border border-line bg-panel" dir="rtl">
+      <div className="flex shrink-0 rounded-2xl border border-line bg-panel">
         {[
-          { label: 'کارمزد ورود', value: '0.000042 ETH', sub: 'start()' },
-          { label: 'گس هر حرکت', value: '≈ 35k', sub: liveBlock > 0 ? `${gwei} gwei الان` : 'move(uint8)' },
-          { label: 'جایزه‌ی ۲۰۴۸', value: '٪۹۰ pot', sub: 'واریز آنی' },
+          { label: 'Entry fee', value: '0.000042 ETH', sub: 'start()' },
+          { label: 'Gas / move', value: '≈ 35k', sub: liveBlock > 0 ? `${gwei} gwei now` : 'move(uint8)' },
+          { label: 'NFT trophy', value: '@ 4,096 pts', sub: 'ERC-721 · on-chain SVG' },
         ].map((s, i) => (
           <div key={s.label} className={`px-5 py-4 ${i > 0 ? 'border-s border-line' : ''}`}>
             <p className="text-[10px] text-slate-500 mb-1">{s.label}</p>
-            <p className="font-display text-lg leading-none text-white" dir="ltr">{s.value}</p>
-            <p className="mt-1 font-mono text-[9px] text-slate-600" dir="ltr">{s.sub}</p>
+            <p className="font-display text-lg leading-none text-white">{s.value}</p>
+            <p className="mt-1 font-mono text-[9px] text-slate-600">{s.sub}</p>
           </div>
         ))}
       </div>
@@ -56,7 +57,7 @@ export default function App() {
         <TopBar chain={chain} />
 
         <main>
-          {/* ═══ شروع با خود بازی ═══ */}
+          {/* ═══ opens with the game itself ═══ */}
           <section id="game" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16 pt-12 md:pt-16">
             <GameIntro liveBlock={chain.block} gwei={chain.gwei} />
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-8">
@@ -67,12 +68,13 @@ export default function App() {
                   over={game.over}
                   keepPlaying={game.keepPlaying}
                   nudgeKey={game.nudgeKey}
+                  nft={game.nft}
                   onMove={game.move}
                   onRestart={game.restart}
                   onContinue={game.continueAfterWin}
                 />
                 <p className="mt-4 text-center text-[12px] text-slate-600">
-                  روی قرارداد واقعی، هر فلش کیبورد یعنی یک <span className="font-mono text-slate-500" dir="ltr">move(dir)</span> با امضای تو
+                  On the real contract, every arrow key is a <span className="font-mono text-slate-500">move(dir)</span> signed by you
                 </p>
               </div>
               <SidePanel
@@ -82,6 +84,8 @@ export default function App() {
                 tiles={game.tiles}
                 lastGain={game.lastGain}
                 txs={game.txs}
+                nft={game.nft}
+                nftLifetime={game.nftLifetime}
                 canUndo={game.canUndo}
                 liveBlock={chain.block}
                 onRestart={game.restart}

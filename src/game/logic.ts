@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
-//  موتور ۲۰۴۸ — آینه‌ی تمام‌نمای Onchain2048.sol
-//  همان الگوریتم نیبل‌ها: هر کاشی «توان ۲» است و برد می‌تواند
-//  در یک uint64 بسته‌بندی شود. dir: 0=چپ 1=راست 2=بالا 3=پایین
+//  2048 engine — a full mirror of Onchain2048.sol
+//  Same nibble algorithm: every tile stores a power of two, so the
+//  board can be packed into a single uint64.
+//  dir: 0=left 1=right 2=up 3=down
 // ═══════════════════════════════════════════════════════════════
 
 export type Dir = 0 | 1 | 2 | 3;
@@ -10,9 +11,9 @@ export interface Tile {
   id: number;
   r: number;
   c: number;
-  exp: number;        // توان ۲ — دقیقاً مثل نیبل‌های قرارداد
-  isNew?: boolean;    // تازه spawn شده (انیمیشن ظهور)
-  merged?: boolean;   // حاصل ادغام (انیمیشن پالس)
+  exp: number;        // power of two — exactly like the contract's nibbles
+  isNew?: boolean;    // just spawned (appear animation)
+  merged?: boolean;   // result of a merge (pop animation)
 }
 
 export interface Snapshot {
@@ -38,7 +39,7 @@ export function spawnTile(tiles: Tile[]): Tile[] {
       id: newId(),
       r: Math.floor(cell / 4),
       c: cell % 4,
-      exp: Math.random() < 0.9 ? 1 : 2, // ۹۰٪ → ۲ ، ۱۰٪ → ۴
+      exp: Math.random() < 0.9 ? 1 : 2, // 90% → 2, 10% → 4
       isNew: true,
     },
   ];
@@ -54,7 +55,7 @@ export interface MoveResult {
   moved: boolean;
 }
 
-/** دقیقاً معادل حلقه‌ی move() در قرارداد: اسلاید+ادغام ردیف‌ها، سپس spawn */
+/** Mirrors the move() loop in the contract exactly: slide+merge rows, then spawn */
 export function applyMove(tiles: Tile[], dir: Dir): MoveResult {
   const grid: (Tile | null)[][] = Array.from({ length: 4 }, () => Array(4).fill(null));
   for (const t of tiles) grid[t.r][t.c] = { ...t, isNew: false, merged: false };
@@ -67,10 +68,10 @@ export function applyMove(tiles: Tile[], dir: Dir): MoveResult {
   for (let i = 0; i < 4; i++) {
     const line: [number, number][] = [];
     for (let j = 0; j < 4; j++) {
-      if (dir === 0) line.push([i, j]); // چپ
-      if (dir === 1) line.push([i, 3 - j]); // راست
-      if (dir === 2) line.push([j, i]); // بالا
-      if (dir === 3) line.push([3 - j, i]); // پایین
+      if (dir === 0) line.push([i, j]); // left
+      if (dir === 1) line.push([i, 3 - j]); // right
+      if (dir === 2) line.push([j, i]); // up
+      if (dir === 3) line.push([3 - j, i]); // down
     }
     lines.push(line);
   }
@@ -117,7 +118,7 @@ export function maxExp(tiles: Tile[]): number {
   return tiles.reduce((m, t) => Math.max(m, t.exp), 0);
 }
 
-/** بسته‌بندی برد در uint64 — دقیقاً مثل storage قرارداد */
+/** Packs the board into a uint64 — exactly like contract storage */
 export function packBoard(tiles: Tile[]): bigint {
   let b = 0n;
   for (const t of tiles) b |= BigInt(t.exp) << BigInt(16 * t.r + 4 * t.c);
@@ -128,7 +129,7 @@ export function boardHex(tiles: Tile[]): string {
   return '0x' + packBoard(tiles).toString(16).padStart(16, '0');
 }
 
-/** نیبل هر خانه برای نمایش تعاملی — هم‌تراز با gridOf() */
+/** Per-cell nibble for the interactive viz — aligned with gridOf() */
 export function nibbleGrid(tiles: Tile[]): number[] {
   const g = Array(16).fill(0);
   for (const t of tiles) g[t.r * 4 + t.c] = t.exp;

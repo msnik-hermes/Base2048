@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-/** ورود نرم بخش‌ها هنگام اسکرول */
+/** Soft entrance when a section scrolls into view */
 export function Reveal({
   children,
   delay = 0,
@@ -40,7 +40,7 @@ export function Reveal({
   );
 }
 
-/** دکمه‌ی اصلی با افکت فشار */
+/** Primary button with press feedback */
 export function ActionButton({
   children,
   onClick,

@@ -1,4 +1,4 @@
-import { faInt } from '../hooks/useBaseChain';
+import { fmtInt } from '../hooks/useBaseChain';
 import type { ChainState } from '../hooks/useBaseChain';
 
 export function Logo() {
@@ -11,9 +11,9 @@ export function Logo() {
         </span>
       </span>
       <span className="leading-tight">
-        <span className="block font-display text-xl text-white">۲۰۴۸ روی Base</span>
-        <span className="block font-mono text-[10px] text-slate-500" dir="ltr">
-          onchain · uint64 · solidity
+        <span className="block font-display text-xl text-white">2048 on Base</span>
+        <span className="block font-mono text-[10px] text-slate-500">
+          onchain · uint64 · ERC-721
         </span>
       </span>
     </a>
@@ -27,10 +27,10 @@ export function TopBar({ chain }: { chain: ChainState }) {
         <Logo />
         <nav className="hidden items-center gap-1 md:flex">
           {[
-            ['#game', 'بازی'],
-            ['#arch', 'معماری'],
-            ['#contract', 'قرارداد'],
-            ['#deploy', 'دیپلوی'],
+            ['#game', 'Play'],
+            ['#arch', 'Architecture'],
+            ['#contract', 'Contract'],
+            ['#deploy', 'Deploy'],
           ].map(([href, label]) => (
             <a
               key={href}
@@ -43,19 +43,19 @@ export function TopBar({ chain }: { chain: ChainState }) {
         </nav>
         <div
           className="flex items-center gap-2.5 rounded-full border border-line bg-panel px-3.5 py-2"
-          title={chain.live ? 'اتصال زنده به RPC رسمی Base' : 'RPC در دسترس نیست — حالت شبیه‌سازی'}
+          title={chain.live ? 'Live connection to the official Base RPC' : 'RPC unreachable — simulation mode'}
         >
           <span className="relative flex h-2 w-2">
             {chain.live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint opacity-60" />}
             <span className={`relative inline-flex h-2 w-2 rounded-full ${chain.live ? 'bg-mint' : 'bg-amber'}`} />
           </span>
-          <span className="font-mono text-[11px] text-slate-300" dir="ltr">
+          <span className="font-mono text-[11px] text-slate-300">
             {chain.live ? (
               <>
-                <span className="text-mint">Base</span> #{faInt(chain.block)} · {chain.gwei} gwei
+                <span className="text-mint">Base</span> #{fmtInt(chain.block)} · {chain.gwei} gwei
               </>
             ) : (
-              <span className="text-amber">Base · شبیه‌سازی</span>
+              <span className="text-amber">Base · simulated</span>
             )}
           </span>
         </div>
@@ -72,17 +72,17 @@ const FLOATERS = [
   { ch: '8', top: '46%', left: '94%', size: '2rem', dur: 16, delay: 5 },
   { ch: '512', top: '8%', left: '68%', size: '2.2rem', dur: 18, delay: 4 },
   { ch: '16', top: '88%', left: '30%', size: '2.4rem', dur: 20, delay: 2 },
-  { ch: '128', top: '38%', left: '2%', size: '2rem', dur: 21, delay: 6 },
+  { ch: '4096', top: '38%', left: '2%', size: '2rem', dur: 21, delay: 6 },
 ];
 
 export function Background() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-      {/* لایه‌های نور */}
+      {/* light layers */}
       <div className="absolute -top-40 left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-base/[0.13] blur-[140px]" />
       <div className="absolute top-1/3 -right-40 h-[420px] w-[420px] rounded-full bg-cyan-bright/[0.06] blur-[120px]" />
       <div className="absolute bottom-0 -left-40 h-[420px] w-[420px] rounded-full bg-amber/[0.05] blur-[120px]" />
-      {/* شبکه */}
+      {/* grid */}
       <div
         className="absolute inset-0 opacity-[0.35]"
         style={{
@@ -93,7 +93,7 @@ export function Background() {
           WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 100%)',
         }}
       />
-      {/* کاشی‌های شناور */}
+      {/* floating tiles */}
       {FLOATERS.map((f) => (
         <span
           key={f.ch}
@@ -119,13 +119,13 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-5 py-10">
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <p className="font-display text-lg text-white">۲۰۴۸ روی Base</p>
+            <p className="font-display text-lg text-white">2048 on Base</p>
             <p className="mt-1 text-[13px] text-slate-500 leading-6 max-w-md">
-              یک نمونه‌ی آموزشی کامل: قرارداد Solidity + فرانت‌اند. آنتروپی blockhash برای سرگرمی است؛
-              در محصول واقعی از Chainlink VRF استفاده کنید.
+              A complete educational build: Solidity contract + frontend. Blockhash entropy is for fun —
+              use Chainlink VRF for anything with real stakes.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2.5" dir="ltr">
+          <div className="flex flex-wrap gap-2.5">
             {[
               ['Base Docs', 'https://docs.base.org'],
               ['Solidity', 'https://docs.soliditylang.org'],
@@ -145,10 +145,10 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-line/50 pt-6 md:flex-row">
-          <p className="font-mono text-[11px] text-slate-600" dir="ltr">
+          <p className="font-mono text-[11px] text-slate-600">
             Onchain2048.sol — MIT — made for Base ⬥
           </p>
-          <p className="text-[12px] text-slate-600">هر حرکت، یک تراکنش. هر برد، یک واریز.</p>
+          <p className="text-[12px] text-slate-600">Every move, a transaction. Every 4096, an NFT.</p>
         </div>
       </div>
     </footer>

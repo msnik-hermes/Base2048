@@ -9,15 +9,26 @@ import {
   type Snapshot,
   type Tile,
 } from './logic';
+import { NFT_THRESHOLD } from '../data/contract';
+
+export interface NftReward {
+  tokenId: number;
+  score: number;
+  hash: string;
+  block: number;
+  mintKey: number; // drives the mint animation on the board
+}
 
 export interface TxEntry {
   id: number;
+  kind: 'move' | 'nft';
   dir: Dir;
   gained: number;
   score: number;
   hash: string;
   gas: number;
   block: number;
+  tokenId?: number;
 }
 
 export interface GameApi {
@@ -31,6 +42,8 @@ export interface GameApi {
   lastGain: { value: number; key: number } | null;
   txs: TxEntry[];
   nudgeKey: number;
+  nft: NftReward | null;
+  nftLifetime: number;
   move: (dir: Dir) => void;
   restart: () => void;
   undo: () => void;
@@ -46,7 +59,9 @@ const DIR_KEYS: Record<string, Dir> = {
 };
 
 const BEST_KEY = 'base2048:best';
+const NFT_LIFETIME_KEY = 'base2048:nftLifetime';
 let txId = 1;
+let tokenSeq = 1;
 
 export function useGame(currentBlock: number): GameApi {
   const [tiles, setTiles] = useState<Tile[]>(() => newRun());
@@ -61,6 +76,10 @@ export function useGame(currentBlock: number): GameApi {
   const [lastGain, setLastGain] = useState<{ value: number; key: number } | null>(null);
   const [txs, setTxs] = useState<TxEntry[]>([]);
   const [nudgeKey, setNudgeKey] = useState(0);
+  const [nft, setNft] = useState<NftReward | null>(null);
+  const [nftLifetime, setNftLifetime] = useState(() => {
+    try { return Number(localStorage.getItem(NFT_LIFETIME_KEY)) || 0; } catch { return 0; }
+  });
 
   const undoRef = useRef<Snapshot | null>(null);
   const [canUndo, setCanUndo] = useState(false);
@@ -85,8 +104,9 @@ export function useGame(currentBlock: number): GameApi {
       setCanUndo(true);
 
       const newScore = score + res.gained;
+      const newMoves = moves + 1;
       setScore(newScore);
-      setMoves((m) => m + 1);
+      setMoves(newMoves);
       if (newScore > best) {
         setBest(newScore);
         try { localStorage.setItem(BEST_KEY, String(newScore)); } catch { /* noop */ }
@@ -94,20 +114,47 @@ export function useGame(currentBlock: number): GameApi {
       if (res.gained > 0) setLastGain({ value: res.gained, key: Date.now() });
 
       const block = currentBlock > 0 ? currentBlock : ++simBlock.current;
-      setTxs((t) =>
-        [
-          {
-            id: txId++,
-            dir,
-            gained: res.gained,
-            score: newScore,
-            hash: randomHash(32),
-            gas: 27_400 + Math.floor(Math.random() * 18_600),
-            block,
-          },
-          ...t,
-        ].slice(0, 6),
-      );
+      const moveHash = randomHash(32);
+      const entries: TxEntry[] = [
+        {
+          id: txId++,
+          kind: 'move',
+          dir,
+          gained: res.gained,
+          score: newScore,
+          hash: moveHash,
+          gas: 27_400 + Math.floor(Math.random() * 18_600),
+          block,
+        },
+      ];
+
+      // Trophy: first time the score crosses 4096 → mint the one-of-one NFT,
+      // mirroring `if (nftOf[player] == 0 && run.score >= NFT_THRESHOLD)` on-chain.
+      let nftReward: NftReward | null = null;
+      if (score < NFT_THRESHOLD && newScore >= NFT_THRESHOLD) {
+        const tokenId = 1023 + tokenSeq++;
+        const hash = randomHash(32);
+        nftReward = { tokenId, score: newScore, hash, block, mintKey: Date.now() };
+        setNft(nftReward);
+        setNftLifetime((n) => {
+          const next = n + 1;
+          try { localStorage.setItem(NFT_LIFETIME_KEY, String(next)); } catch { /* noop */ }
+          return next;
+        });
+        entries.unshift({
+          id: txId++,
+          kind: 'nft',
+          dir,
+          gained: 0,
+          score: newScore,
+          hash,
+          gas: 96_000 + Math.floor(Math.random() * 24_000),
+          block,
+          tokenId,
+        });
+      }
+
+      setTxs((t) => [...entries, ...t].slice(0, 6));
 
       if (!won && maxExp(res.tiles) >= 11) setWon(true); // 2^11 = 2048
       if (!hasMoves(res.tiles)) setOver(true);
@@ -125,6 +172,7 @@ export function useGame(currentBlock: number): GameApi {
     setOver(false);
     setWon(false);
     setKeepPlaying(false);
+    setNft(null);
     undoRef.current = null;
     setCanUndo(false);
   }, []);
@@ -136,13 +184,14 @@ export function useGame(currentBlock: number): GameApi {
     setScore(snap.score);
     setMoves(snap.moves);
     setOver(false);
+    if (snap.score < NFT_THRESHOLD) setNft(null);
     undoRef.current = null;
     setCanUndo(false);
   }, []);
 
   const continueAfterWin = useCallback(() => setKeepPlaying(true), []);
 
-  // کیبورد
+  // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const dir = DIR_KEYS[e.code];
@@ -156,6 +205,7 @@ export function useGame(currentBlock: number): GameApi {
 
   return {
     tiles, score, best, moves, over, won, keepPlaying,
-    lastGain, txs, nudgeKey, move, restart, undo, continueAfterWin, canUndo,
+    lastGain, txs, nudgeKey, nft, nftLifetime,
+    move, restart, undo, continueAfterWin, canUndo,
   };
 }

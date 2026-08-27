@@ -1,5 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import type { Dir, Tile } from '../game/logic';
+import type { NftReward } from '../game/useGame';
+import { fmtInt } from '../hooks/useBaseChain';
 import { ActionButton } from './ui';
 
 const GAP = 10;
@@ -26,12 +29,15 @@ function fontSize(exp: number): string {
   return 'text-[clamp(1rem,4.6vmin,1.6rem)]';
 }
 
+const GOLD = ['#ffd76a', '#ffb03a', '#0052ff', '#5b8cff', '#ffffff'];
+
 export function GameBoard({
   tiles,
   won,
   over,
   keepPlaying,
   nudgeKey,
+  nft,
   onMove,
   onRestart,
   onContinue,
@@ -41,16 +47,38 @@ export function GameBoard({
   over: boolean;
   keepPlaying: boolean;
   nudgeKey: number;
+  nft: NftReward | null;
   onMove: (d: Dir) => void;
   onRestart: () => void;
   onContinue: () => void;
 }) {
   const touch = useRef<{ x: number; y: number } | null>(null);
   const showWin = won && !keepPlaying;
+  const prevNftKey = useRef(0);
+  const prevWin = useRef(false);
+
+  // Gold confetti burst when the NFT trophy is minted
+  useEffect(() => {
+    if (nft && nft.mintKey !== prevNftKey.current) {
+      prevNftKey.current = nft.mintKey;
+      confetti({ particleCount: 140, spread: 85, origin: { y: 0.35 }, colors: GOLD, ticks: 220, scalar: 1.05 });
+      window.setTimeout(
+        () => confetti({ particleCount: 70, spread: 120, origin: { y: 0.3 }, colors: GOLD, ticks: 180 }),
+        220,
+      );
+    }
+  }, [nft]);
+
+  // Blue/gold burst when 2048 is tiled
+  useEffect(() => {
+    if (showWin && !prevWin.current) {
+      confetti({ particleCount: 110, spread: 90, origin: { y: 0.4 }, colors: GOLD, ticks: 200 });
+    }
+    prevWin.current = showWin;
+  }, [showWin]);
 
   return (
     <div
-      dir="ltr"
       key={nudgeKey}
       className={`relative aspect-square w-full select-none rounded-2xl border border-line bg-board p-0 shadow-[0_30px_80px_rgba(2,8,26,0.75),inset_0_1px_0_rgba(120,160,255,0.08)] ${
         nudgeKey > 0 ? 'nudge' : ''
@@ -71,12 +99,12 @@ export function GameBoard({
         else onMove(dy > 0 ? 3 : 2);
       }}
     >
-      {/* خانه‌های زمینه */}
+      {/* background cells */}
       {Array.from({ length: 16 }, (_, i) => (
         <div key={i} className="absolute rounded-lg bg-cell" style={cellPos(i)} />
       ))}
 
-      {/* کاشی‌ها */}
+      {/* tiles */}
       {tiles.map((t) => (
         <div
           key={t.id}
@@ -93,31 +121,55 @@ export function GameBoard({
         </div>
       ))}
 
-      {/* اورلی برد */}
+      {/* NFT mint banner — plays once per mint */}
+      {nft && (
+        <div
+          key={nft.mintKey}
+          className="nft-banner pointer-events-none absolute inset-x-3 top-3 z-20 flex items-center gap-3 rounded-xl border border-gold/60 bg-[rgba(20,16,4,0.92)] px-4 py-3 shadow-[0_10px_40px_rgba(255,190,70,0.25)] backdrop-blur-sm"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-gold to-amber text-[#3a2400]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" strokeLinejoin="round" />
+              <path d="m3 7 9 5 9-5M12 22V12" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <p className="font-display text-sm text-gold leading-tight">NFT MINTED — TOKEN #{nft.tokenId}</p>
+            <p className="truncate font-mono text-[10px] text-slate-400">
+              score ≥ 4096 · {nft.hash.slice(0, 20)}…
+            </p>
+          </div>
+          <span className="ml-auto shrink-0 rounded-md bg-gold/15 px-2 py-1 font-mono text-[10px] text-gold">
+            +{fmtInt(nft.score)} pts
+          </span>
+        </div>
+      )}
+
+      {/* win overlay */}
       {showWin && (
         <div className="overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 rounded-2xl bg-[rgba(4,10,28,0.82)] backdrop-blur-[3px]">
           <div className="tile t2048 flex h-24 w-24 items-center justify-center rounded-xl font-display text-3xl tile-merged">
             2048
           </div>
-          <p className="font-display text-4xl text-gold">بردی! 🎉</p>
-          <p className="text-sm text-slate-400">قرارداد ۹۰٪ از pot را به آدرست واریز می‌کند.</p>
-          <div className="flex gap-3" dir="rtl">
+          <p className="font-display text-4xl text-gold">YOU WIN! 🎉</p>
+          <p className="text-sm text-slate-400">The contract sends 90% of the pot to your address.</p>
+          <div className="flex gap-3">
             <ActionButton variant="amber" onClick={onContinue}>
-              ادامه بازی
+              Keep going
             </ActionButton>
             <ActionButton variant="ghost" onClick={onRestart}>
-              دور جدید
+              New run
             </ActionButton>
           </div>
         </div>
       )}
 
-      {/* اورلی باخت */}
+      {/* game-over overlay */}
       {over && (
         <div className="overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 rounded-2xl bg-[rgba(4,10,28,0.86)] backdrop-blur-[3px]">
-          <p className="font-display text-4xl text-rose">بازی تمام شد</p>
-          <p className="text-sm text-slate-400">حرکتی باقی نمانده — درست مثل revert قرارداد.</p>
-          <ActionButton onClick={onRestart}>شروع دوباره</ActionButton>
+          <p className="font-display text-4xl text-rose">GAME OVER</p>
+          <p className="text-sm text-slate-400">No moves left — exactly like the contract reverting.</p>
+          <ActionButton onClick={onRestart}>Play again</ActionButton>
         </div>
       )}
     </div>
