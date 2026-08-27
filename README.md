@@ -44,6 +44,14 @@ forge create contracts/Onchain2048.sol:Onchain2048 \
   --etherscan-api-key $BASESCAN_API_KEY
 ```
 
+## Test on Remix (no install)
+
+1. [remix.ethereum.org](https://remix.ethereum.org) → create `Onchain2048.sol`, paste the source, compile with **solc ≥ 0.8.24**.
+2. Deploy & Run → environment `Remix VM (Cancun)` (free) or `Injected Provider – MetaMask` on **Base Sepolia** (chainId 84532, faucet: faucet.base.org).
+3. Constructor arg: `42000000000000`. **Leave the Value field at 0** — the constructor isn't payable; the entry fee is paid via `start()`.
+4. Value field only takes whole numbers: set the unit to **Wei** and enter `42000000000000` (= 0.000042 ETH), then call `start()`.
+5. Play with `move(dir)` (`0=left 1=right 2=up 3=down`), read `gridOf` / `scoreOf`; past score 4096 `nftOf(address)` returns your trophy id and `tokenURI(id)` the fully on-chain metadata.
+
 ## Play from the command line
 
 ```bash

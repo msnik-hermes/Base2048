@@ -53,8 +53,8 @@ const STEPS = [
   },
   {
     title: 'Deploy',
-    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia), or "Remix VM (Cancun)" for local testing. Select Onchain2048, set the constructor arg to 42000000000000 wei (the 0.000042 ETH entry fee) and hit Deploy.',
-    chips: ['ctor arg: 42000000000000', 'chainId 84532'],
+    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia), or "Remix VM (Cancun)" for local testing. Select Onchain2048, set the constructor arg to 42000000000000 (the 0.000042 ETH entry fee, in wei) and hit Deploy. Important: leave the Value field at 0 — the constructor isn\u2019t payable; the fee is paid later by start().',
+    chips: ['ctor arg: 42000000000000', 'Value = 0', 'chainId 84532'],
   },
   {
     title: 'Play & mint',
@@ -269,21 +269,40 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
           ))}
 
           <Reveal delay={300}>
-            <div className="flex gap-4 rounded-2xl border border-amber/30 bg-amber/[0.06] p-5">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-amber">
-                <path d="M12 3 2.5 19.5h19L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                <path d="M12 10v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <circle cx="12" cy="17.2" r="1.1" fill="currentColor" />
-              </svg>
-              <div>
-                <p className="font-display text-base text-amber">“I can't type a decimal in the Value field”</p>
-                <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
-                  That's a Remix quirk, not a contract issue — the field only takes whole numbers in the
-                  selected unit. Fix: change the unit dropdown next to Value from <span className="font-mono text-[12px] text-slate-400">Ether</span> to{' '}
-                  <span className="font-mono text-[12px] text-mint">Wei</span> and enter{' '}
-                  <span className="font-mono text-[12px] text-white">42000000000000</span> — the exact wei value
-                  of 0.000042 ETH. Then <span className="font-mono text-[12px] text-cyan-bright">start()</span> goes through.
-                </p>
+            <div className="rounded-2xl border border-amber/30 bg-amber/[0.06] p-5">
+              <div className="flex items-center gap-2.5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 text-amber">
+                  <path d="M12 3 2.5 19.5h19L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  <path d="M12 10v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="12" cy="17.2" r="1.1" fill="currentColor" />
+                </svg>
+                <p className="font-display text-base text-amber">Two Remix gotchas that make transactions “revert”</p>
+              </div>
+              <div className="mt-4 space-y-4">
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">1</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">Value must be 0 when you Deploy</p>
+                    <p className="mt-1 text-[13px] leading-6 text-slate-300">
+                      The constructor isn't payable — it only stores the fee. If the Value field still holds wei
+                      when you hit Deploy, Remix sends it with the creation transaction and the whole deploy
+                      reverts (“mined but execution failed”). Clear Value to <span className="font-mono text-[12px] text-white">0</span>, Deploy,
+                      and pay the fee later through <span className="font-mono text-[12px] text-cyan-bright">start()</span>.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">2</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">“I can't type a decimal in the Value field”</p>
+                    <p className="mt-1 text-[13px] leading-6 text-slate-300">
+                      The field only takes whole numbers in the selected unit. Switch the unit dropdown next to
+                      Value from <span className="font-mono text-[12px] text-slate-400">Ether</span> to <span className="font-mono text-[12px] text-mint">Wei</span> and
+                      enter <span className="font-mono text-[12px] text-white">42000000000000</span> — the exact wei value of 0.000042 ETH —
+                      then call <span className="font-mono text-[12px] text-cyan-bright">start()</span>.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </Reveal>
