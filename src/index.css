@@ -1,1 +1,192 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Lalezar", "Vazirmatn", sans-serif;
+  --font-body: "Vazirmatn", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-ink: #070f24;
+  --color-panel: #0d1731;
+  --color-board: #0b1530;
+  --color-cell: #111f42;
+  --color-line: rgba(148, 180, 255, 0.14);
+
+  --color-base: #0052ff;
+  --color-base-hi: #1f68ff;
+  --color-base-bright: #5b8cff;
+  --color-base-dim: #3b5ea8;
+
+  --color-cyan-bright: #4dd4ff;
+  --color-mint: #37d9a6;
+  --color-amber: #ffb03a;
+  --color-gold: #ffd76a;
+  --color-rose: #ff6b81;
+  --color-orange: #ffa657;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #060c1c;
+  background-image: radial-gradient(ellipse 120% 60% at 50% -10%, #0a1838 0%, #060c1c 60%);
+  color: #dbe6fb;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(0, 82, 255, 0.45);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-base-bright);
+  outline-offset: 2px;
+}
+
+/* ── کاشی‌های بازی ─────────────────────────────────────────── */
+.tile {
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.t2    { background: #182a52; color: #9fb4e0; }
+.t4    { background: #203a6e; color: #c2d1f3; }
+.t8    { background: #1447b8; color: #dce8ff; }
+.t16   { background: #0052ff; color: #ffffff; }
+.t32   { background: #2f7dff; color: #ffffff; }
+.t64   { background: #00b3e6; color: #042633; }
+.t128  { background: #00c2b0; color: #04302b; }
+.t256  { background: #ffb03a; color: #3a2400; }
+.t512  { background: #ff8f2e; color: #401f00; }
+.t1024 { background: #ff6a2e; color: #ffffff; }
+.t2048 {
+  background: linear-gradient(145deg, #ffd76a, #ffb03a);
+  color: #3d2a00;
+  box-shadow: 0 0 34px rgba(255, 190, 70, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+.tmax {
+  background: linear-gradient(145deg, #ff4d6d, #e62e5c);
+  color: #fff;
+  box-shadow: 0 0 30px rgba(255, 77, 109, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+}
+
+.tile-new {
+  animation: tile-appear 0.2s ease 0.1s backwards;
+}
+.tile-merged {
+  animation: tile-pop 0.24s ease 0.11s;
+}
+@keyframes tile-appear {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes tile-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+/* لرزش حرکت بی‌اثر */
+.nudge {
+  animation: nudge 0.22s ease;
+}
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-7px); }
+  60% { transform: translateX(6px); }
+}
+
+/* شناور شدن امتیاز */
+.gain-float {
+  position: absolute;
+  top: 0.4rem;
+  inset-inline-start: 6.5rem;
+  animation: gain-float 0.9s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes gain-float {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-30px); }
+}
+
+/* ردیف‌های لاگ تراکنش */
+.tx-row {
+  animation: tx-in 0.35s ease backwards;
+}
+@keyframes tx-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* عدد‌های شناور پس‌زمینه */
+.floater {
+  animation-name: float-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+@keyframes float-drift {
+  from { transform: translateY(0) rotate(-4deg); }
+  to   { transform: translateY(-38px) rotate(5deg); }
+}
+
+/* ظهور هنگام اسکرول */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* نقطه‌ی تپنده */
+.pulse-dot {
+  animation: pulse-glow 1.6s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(55, 217, 166, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(55, 217, 166, 0); }
+}
+
+/* اسپینر دیپلوی */
+.spinner {
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* اسکرول‌بار کد */
+.code-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.code-scroll::-webkit-scrollbar-track { background: transparent; }
+.code-scroll::-webkit-scrollbar-thumb {
+  background: rgba(91, 140, 255, 0.25);
+  border-radius: 8px;
+}
+.code-scroll::-webkit-scrollbar-thumb:hover { background: rgba(91, 140, 255, 0.45); }
+
+/* دکمه‌های کیبورد */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 180, 255, 0.25);
+  border-bottom-width: 3px;
+  background: #101d3d;
+  color: #9fb4e0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: all 0.12s ease;
+}
+.keycap:hover {
+  border-color: var(--color-base);
+  color: #fff;
+  transform: translateY(1px);
+  border-bottom-width: 2px;
+}
