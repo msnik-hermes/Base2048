@@ -63,6 +63,30 @@ npm run build    # production build → dist/
 
 The page opens straight into the playable game: keyboard / swipe controls, per-move transaction log, a live `uint64` storage snapshot of your board, live Base block & gas data, the contract source with highlighting, and a deploy guide.
 
+## Quick start (clone)
+
+```bash
+git clone https://github.com/msnik/Base2048.git
+cd Base2048
+npm install
+npm run dev
+```
+
+## Push this project to GitHub
+
+From the project root:
+
+```bash
+git init
+git add .
+git commit -m "Onchain 2048 on Base — Solidity game + ERC-721 trophy + React frontend"
+git branch -M main
+git remote add origin https://github.com/msnik/Base2048.git
+git push -u origin main
+```
+
+Or just run `./push.sh` — it does exactly the steps above (skips `git init` if already done). If the remote already has commits (e.g. a generated README), run `git pull origin main --rebase` before pushing.
+
 ## Notes
 
 - `blockhash`-based entropy is fine for a demo — use **Chainlink VRF** before running with real stakes.
