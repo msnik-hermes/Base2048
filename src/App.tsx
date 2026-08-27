@@ -3,6 +3,7 @@ import { Background, Footer, TopBar } from './components/Chrome';
 import { ContractSection } from './components/ContractSection';
 import { DeploySection } from './components/DeploySection';
 import { GameBoard } from './components/GameBoard';
+import { RemixSection } from './components/RemixSection';
 import { SidePanel } from './components/SidePanel';
 import { useBaseChain } from './hooks/useBaseChain';
 import { useGame } from './game/useGame';
@@ -96,6 +97,7 @@ export default function App() {
 
           <ArchSection tiles={game.tiles} />
           <ContractSection />
+          <RemixSection tiles={game.tiles} score={game.score} moves={game.moves} />
           <DeploySection liveBlock={chain.block} />
         </main>
 

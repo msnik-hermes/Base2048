@@ -166,7 +166,7 @@ export function DeploySection({ liveBlock }: { liveBlock: number }) {
   return (
     <section id="deploy" className="relative mx-auto max-w-6xl px-5 py-24">
       <SectionHeader
-        index="03"
+        index="04"
         kicker="Ship to Base"
         title="Deploy to Base in three commands"
         lead="The contract is a single file and only needs Foundry. Test it on Base Sepolia first, then ship to mainnet with verification on Basescan — Base's 2-second blocks mean every game move lands almost instantly."

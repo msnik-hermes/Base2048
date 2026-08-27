@@ -30,6 +30,7 @@ export function TopBar({ chain }: { chain: ChainState }) {
             ['#game', 'Play'],
             ['#arch', 'Architecture'],
             ['#contract', 'Contract'],
+            ['#remix', 'Remix'],
             ['#deploy', 'Deploy'],
           ].map(([href, label]) => (
             <a
@@ -131,6 +132,7 @@ export function Footer() {
               ['Solidity', 'https://docs.soliditylang.org'],
               ['Foundry', 'https://book.getfoundry.sh'],
               ['Basescan', 'https://basescan.org'],
+              ['Remix IDE', 'https://remix.ethereum.org'],
             ].map(([label, href]) => (
               <a
                 key={label}
