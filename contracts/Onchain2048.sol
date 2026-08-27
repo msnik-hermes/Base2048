@@ -274,7 +274,7 @@ contract Onchain2048 {
         return string.concat('data:application/json;base64,', _base64(bytes(json)));
     }
 
-    function _svg(Snapshot memory s, uint256 id) internal view returns (string memory svg) {
+    function _svg(Snapshot memory s, uint256 id) internal pure returns (string memory svg) {
         svg = string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 388">',
             '<rect width="320" height="388" rx="18" fill="#071026"/>',
