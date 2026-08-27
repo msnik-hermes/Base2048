@@ -58,8 +58,8 @@ const STEPS = [
   },
   {
     title: 'Play & mint',
-    body: 'In the Value field set 0.000042 ether and call start(). Then call move(dir) — 0 left, 1 right, 2 up, 3 down — and watch Moved events in the console. Read gridOf / scoreOf to follow your run. Push the score past 4096: nftOf(address) returns your trophy id, and tokenURI(id) returns the on-chain metadata — paste it into the decoder on the right.',
-    chips: ['start() → move(dir)', '4096 → RewardMinted'],
+    body: 'Remix\u2019s Value field only accepts whole numbers — so switch the unit dropdown from Ether to Wei and type 42000000000000 (= 0.000042 ETH), then call start(). After that, call move(dir) — 0 left, 1 right, 2 up, 3 down — and watch Moved events in the console. Read gridOf / scoreOf to follow your run. Push the score past 4096: nftOf(address) returns your trophy id, and tokenURI(id) returns the on-chain metadata — paste it into the decoder on the right.',
+    chips: ['Value unit → Wei', '42000000000000', 'start() → move(dir)', '4096 → RewardMinted'],
   },
 ];
 
@@ -267,6 +267,26 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
               </div>
             </Reveal>
           ))}
+
+          <Reveal delay={300}>
+            <div className="flex gap-4 rounded-2xl border border-amber/30 bg-amber/[0.06] p-5">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-amber">
+                <path d="M12 3 2.5 19.5h19L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M12 10v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="12" cy="17.2" r="1.1" fill="currentColor" />
+              </svg>
+              <div>
+                <p className="font-display text-base text-amber">“I can't type a decimal in the Value field”</p>
+                <p className="mt-1.5 text-[13px] leading-6 text-slate-300">
+                  That's a Remix quirk, not a contract issue — the field only takes whole numbers in the
+                  selected unit. Fix: change the unit dropdown next to Value from <span className="font-mono text-[12px] text-slate-400">Ether</span> to{' '}
+                  <span className="font-mono text-[12px] text-mint">Wei</span> and enter{' '}
+                  <span className="font-mono text-[12px] text-white">42000000000000</span> — the exact wei value
+                  of 0.000042 ETH. Then <span className="font-mono text-[12px] text-cyan-bright">start()</span> goes through.
+                </p>
+              </div>
+            </div>
+          </Reveal>
 
           <Reveal delay={340}>
             <div className="overflow-hidden rounded-2xl border border-line bg-panel">
