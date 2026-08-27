@@ -303,6 +303,20 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
                     </p>
                   </div>
                 </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">3</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">“Deploy fails: out of gas”</p>
+                    <p className="mt-1 text-[13px] leading-6 text-slate-300">
+                      The string-heavy <span className="font-mono text-[12px] text-slate-400">tokenURI()</span> bloats
+                      unoptimized bytecode past Remix's 3M default limit. In the{' '}
+                      <span className="font-mono text-[12px] text-mint">Solidity Compiler</span> tab tick{' '}
+                      <span className="font-mono text-[12px] text-white">Optimization (200)</span>, recompile, and as a
+                      safety net raise the <span className="font-mono text-[12px] text-slate-400">Gas limit</span> under
+                      Deploy's advanced settings to <span className="font-mono text-[12px] text-white">8000000</span>.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </Reveal>
