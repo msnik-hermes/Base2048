@@ -319,7 +319,7 @@ export function SidePanel({
                     {isNft ? (
                       <span className="font-display text-sm text-gold">NFT</span>
                     ) : isStart ? (
-                      <span className="font-mono text-[10px] text-amber">entry fee</span>
+                      <span className="font-mono text-[10px] text-amber">free · gas only</span>
                     ) : tx.gained > 0 ? (
                       <span className="font-display text-sm text-mint">+{fmtInt(tx.gained)}</span>
                     ) : (

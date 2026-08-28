@@ -238,8 +238,8 @@ export function OnchainBar({
                     runtime <span className="text-white">{probe.codeKb.toFixed(1)} KB</span>
                   </span>
                   <span className="font-mono text-[11px] text-slate-400">
-                    holds <span className="text-gold">{weiToEth(probe.balanceWei)} ETH</span>{' '}
-                    <span className="text-slate-600">(pot + house cut)</span>
+                    balance <span className="text-gold">{weiToEth(probe.balanceWei)} ETH</span>{' '}
+                    <span className="text-slate-600">(should be 0 — nothing is payable)</span>
                   </span>
                   <a
                     href={`${net.explorer}/address/${address.trim()}`}
@@ -271,10 +271,7 @@ export function OnchainBar({
                 {RUN_BADGE[runState].label}
               </span>
               <span className="font-mono text-[11px] text-slate-400">
-                entry <span className="text-white">{oc.entryFeeStr} ETH</span>
-              </span>
-              <span className="font-mono text-[11px] text-slate-400">
-                pot <span className="text-gold">{oc.potStr} ETH</span>
+                entry fee <span className="text-mint">0 — free to play</span>
               </span>
               <span className="font-mono text-[11px] text-slate-400">
                 score <span className="text-white">{fmtNum(oc.state.score)}</span>
@@ -291,7 +288,7 @@ export function OnchainBar({
                       start() pending…
                     </>
                   ) : runState === 0 ? (
-                    `start() — pay ${oc.entryFeeStr} ETH`
+                    'start() — free, gas only'
                   ) : (
                     'start() — new run'
                   )}

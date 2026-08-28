@@ -156,7 +156,7 @@ export function GameBoard({
             2048
           </div>
           <p className="font-display text-4xl text-gold">YOU WIN! 🎉</p>
-          <p className="text-sm text-slate-400">The contract sends 90% of the pot to your address.</p>
+          <p className="text-sm text-slate-400">The run flips to ST_WON on-chain — pure glory, no money involved.</p>
           <div className="flex gap-3">
             <ActionButton variant="amber" onClick={onContinue}>
               Keep going
@@ -183,7 +183,7 @@ export function GameBoard({
           <p className="font-display text-3xl text-white">No active run</p>
           <p className="max-w-[280px] text-center text-sm leading-6 text-slate-400">
             This wallet has no run on the contract yet — <span className="font-mono text-cyan-bright">start()</span> spawns
-            two tiles and pays the entry fee into the pot.
+            two tiles. It's free; you only pay the Base tx fee.
           </p>
           <ActionButton variant="amber" onClick={onRestart}>
             start() — new run

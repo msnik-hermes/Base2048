@@ -35,9 +35,7 @@ export const NETWORKS: Record<
 };
 
 const ABI = [
-  'function entryFee() view returns (uint256)',
-  'function pot() view returns (uint256)',
-  'function start() payable',
+  'function start()',
   'function move(uint8 dir)',
   'function gridOf(address) view returns (uint8[16])',
   'function scoreOf(address) view returns (uint40)',
@@ -48,7 +46,6 @@ const ABI = [
   'error NotActive()',
   'error InvalidDirection()',
   'error NoopMove()',
-  'error FeeTooLow()',
 ];
 
 export interface OcState {
@@ -56,8 +53,6 @@ export interface OcState {
   score: number;
   moves: number;
   nftId: number;
-  entryFee: bigint;
-  pot: bigint;
 }
 
 export type OcApi = ReturnType<typeof useOnchain>;
@@ -162,14 +157,12 @@ export function useOnchain(netId: NetId, contractAddress: string) {
     const me = accountRef.current;
     if (!c || !me) return;
     try {
-      const [grid, score, st, mv, nft, fee, pot] = await Promise.all([
+      const [grid, score, st, mv, nft] = await Promise.all([
         c.gridOf(me) as Promise<bigint[]>,
         c.scoreOf(me) as Promise<bigint>,
         c.stateOf(me) as Promise<bigint>,
         c.movesOf(me) as Promise<bigint>,
         c.nftOf(me) as Promise<bigint>,
-        c.entryFee() as Promise<bigint>,
-        c.pot() as Promise<bigint>,
       ]);
 
       const g = grid.map(Number);
@@ -179,8 +172,6 @@ export function useOnchain(netId: NetId, contractAddress: string) {
         score: Number(score),
         moves: Number(mv),
         nftId,
-        entryFee: fee,
-        pot,
       });
 
       // board → tiles, diffing against the previous grid for animations
@@ -266,7 +257,7 @@ export function useOnchain(netId: NetId, contractAddress: string) {
     };
   }, [eth, account, contractAddress, netId, validAddress]);
 
-  // ── gentle poll so pot / state stay live ──────────────────────
+  // ── gentle poll so run state stays live ───────────────────────
   useEffect(() => {
     if (!account || !validAddress) return;
     const id = window.setInterval(() => {
@@ -346,7 +337,7 @@ export function useOnchain(netId: NetId, contractAddress: string) {
     [],
   );
 
-  // ── send a real start() transaction (pays entryFee) ───────────
+  // ── send a real start() transaction (free — gas only) ─────────
   const startRun = useCallback(async () => {
     const w = writeRef.current;
     if (!w || pendingRef.current) return;
@@ -354,8 +345,7 @@ export function useOnchain(netId: NetId, contractAddress: string) {
     pendingRef.current = true;
     setPending('start');
     try {
-      const fee = (await w.entryFee()) as bigint;
-      const tx = await w.start({ value: fee });
+      const tx = await w.start();
       const r = await tx.wait();
       prevGridRef.current = null; // fresh board → full spawn animation
       await refreshRef.current();
@@ -404,7 +394,5 @@ export function useOnchain(netId: NetId, contractAddress: string) {
     connect,
     play,
     startRun,
-    entryFeeStr: state ? formatEth(state.entryFee) : '—',
-    potStr: state ? formatEth(state.pot) : '—',
   };
 }

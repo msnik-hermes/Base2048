@@ -182,15 +182,14 @@ export function DeploySection({ liveBlock }: { liveBlock: number }) {
           <CodeBlock
             title="2 · deploy → Base Mainnet"
             code={DEPLOY_MAINNET}
-            note="The constructor arg 42000000000000 wei = 0.000042 ETH; at current Base gas prices the whole deployment costs pennies."
+            note="No constructor arguments — the contract is free-to-play by design. At current Base gas prices the whole deployment costs pennies."
           />
           <CodeBlock
             title="3 · verify the source on Basescan"
             code={`# Basescan → your contract → "Verify and Publish"
 #   Method:  Solidity (Single file)
-#   Compiler: v0.8.24+commit…  ·  Optimization: Yes (200)
-#   Constructor args (ABI-encoded uint256 42000000000000):
-00000000000000000000000000000000000000000000000000002632E314A000`}
+#   Compiler: v0.8.36  ·  Optimization: Yes (200)  ·  viaIR: No
+#   Constructor args: none`}
             note="Deployed with Remix? The same fields work in the Basescan web form — paste the exact source from this page. Verified contracts show readable code and a Read/Write console on Basescan."
           />
           <CodeBlock title="4 · play from the command line" code={INTERACT_COMMANDS} />

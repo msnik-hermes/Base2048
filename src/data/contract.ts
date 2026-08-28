@@ -1,24 +1,27 @@
 // Contract source — exactly mirrors contracts/Onchain2048.sol
+// Free-to-play edition: no entry fee, no pot, no house cut, no withdrawals.
 
 export const CONTRACT_NAME = 'Onchain2048';
 export const CONTRACT_FILE = 'Onchain2048.sol';
-export const SOLIDITY_VERSION = '0.8.24';
+export const SOLIDITY_VERSION = '0.8.36';
 
 export const SOLIDITY_SOURCE = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 /// ═══════════════════════════════════════════════════════════════
-///  ONCHAIN 2048 — Base · ERC-721 reward edition
+///  ONCHAIN 2048 — Base · free-to-play · ERC-721 trophy edition
 ///  ─────────────────────────────────────────────────────────────
 ///  The entire game state lives in a single storage slot:
 ///    • the 4×4 board is packed into one uint64 (16 × 4-bit nibbles)
 ///    • each nibble stores a power of two: 1 → 2 … 11 → 2048, 0 = empty
-///    • every move is one move(dir) transaction, ~35k gas
-///  Players enter by paying entryFee. Whoever tiles 2048 first takes
-///  90% of the pot; 10% accrues to the house. The first time a
-///  player pushes their score to 4096, the contract mints them a
-///  one-of-one ERC-721 trophy whose metadata — an SVG render of the
-///  board at mint time — is generated fully on-chain.
+///    • every move is one move(dir) transaction
+///
+///  Free to play — there is NO entry fee, NO pot and NO house cut.
+///  The only cost is the Base network transaction fee. There is no
+///  owner and no way to withdraw value, so nothing can be rug-pulled.
+///  The first time a player pushes their score to 4096, the contract
+///  mints them a one-of-one ERC-721 trophy whose metadata — an SVG
+///  render of the board at mint time — is generated fully on-chain.
 /// ═══════════════════════════════════════════════════════════════
 
 interface IERC721Receiver {
@@ -28,11 +31,7 @@ interface IERC721Receiver {
 contract Onchain2048 {
     uint8   public constant SIZE          = 4;
     uint8   public constant WIN_EXP       = 11;          // 2^11 = 2048
-    uint256 public constant HOUSE_BPS     = 1000;        // 10% house cut
     uint256 public constant NFT_THRESHOLD = 4096;        // score that mints the trophy
-
-    uint256 public immutable entryFee;
-    address public immutable owner;
 
     uint8 internal constant ST_NONE    = 0;
     uint8 internal constant ST_ACTIVE  = 1;
@@ -47,7 +46,6 @@ contract Onchain2048 {
     }
 
     mapping(address => Run) private _runs;
-    uint256 public houseCut;                             // accrued house share
 
     // ── ERC-721 trophy (minimal, self-contained — no imports) ──
     string public constant name   = "Onchain 2048";
@@ -65,9 +63,8 @@ contract Onchain2048 {
 
     event RunStarted(address indexed player, uint64 board);
     event Moved(address indexed player, uint8 dir, uint64 board, uint40 score, uint32 gained);
-    event Win(address indexed player, uint256 prize, uint64 board);
+    event Win(address indexed player, uint64 board);
     event GameOver(address indexed player, uint40 score);
-    event HouseSwept(address indexed to, uint256 amount);
     event RewardMinted(address indexed player, uint256 indexed tokenId, uint40 score, uint64 board);
 
     // ERC-721 events
@@ -78,10 +75,6 @@ contract Onchain2048 {
     error NotActive();
     error InvalidDirection();
     error NoopMove();
-    error FeeTooLow();
-    error NotOwner();
-    error TransferFailed();
-    error NothingToSweep();
     error ZeroAddress();
     error TokenGone();
     error NotAuthorized();
@@ -89,15 +82,8 @@ contract Onchain2048 {
     error SelfApproval();
     error UnsafeRecipient();
 
-    constructor(uint256 fee_) {
-        entryFee = fee_;
-        owner = msg.sender;
-    }
-
-    // ── Start a new run ─────────────────────────────────────────
-    // The entry fee goes straight into the contract's pot.
-    function start() external payable {
-        if (msg.value < entryFee) revert FeeTooLow();
+    // ── Start a new run — free, only costs the Base tx fee ──────
+    function start() external {
         uint256 entropy = _entropy(msg.sender, 0);
         uint64 board = _spawn(_spawn(0, entropy), entropy >> 48);
         _runs[msg.sender] = Run({board: board, score: 0, moves: 0, state: ST_ACTIVE});
@@ -147,13 +133,7 @@ contract Onchain2048 {
 
         if (_maxExp(nb) >= WIN_EXP) {
             run.state = ST_WON;
-            uint256 potNow  = address(this).balance - houseCut;
-            uint256 feePart = (potNow * HOUSE_BPS) / 10000;
-            uint256 prize   = potNow - feePart;
-            houseCut += feePart;
-            emit Win(msg.sender, prize, nb);
-            (bool ok, ) = payable(msg.sender).call{value: prize}("");
-            if (!ok) revert TransferFailed();
+            emit Win(msg.sender, nb);
         } else if (!_hasMoves(nb)) {
             run.state = ST_OVER;
             emit GameOver(msg.sender, run.score);
@@ -165,7 +145,6 @@ contract Onchain2048 {
     function scoreOf(address p) external view returns (uint40) { return _runs[p].score; }
     function stateOf(address p) external view returns (uint8)  { return _runs[p].state; }
     function movesOf(address p) external view returns (uint32) { return _runs[p].moves; }
-    function pot()     external view returns (uint256) { return address(this).balance - houseCut; }
 
     /// Board as an array of 16 exponents — cell i = (i/4, i%4)
     function gridOf(address p) external view returns (uint8[16] memory g) {
@@ -177,17 +156,6 @@ contract Onchain2048 {
     function snapshotOf(uint256 id) external view returns (Snapshot memory) {
         ownerOf(id);
         return _snapshots[id];
-    }
-
-    // ── Sweep the house cut (owner only) ────────────────────────
-    function sweepHouseCut(address to) external {
-        if (msg.sender != owner) revert NotOwner();
-        uint256 amount = houseCut;
-        if (amount == 0) revert NothingToSweep();
-        houseCut = 0;
-        emit HouseSwept(to, amount);
-        (bool ok, ) = payable(to).call{value: amount}("");
-        if (!ok) revert TransferFailed();
     }
 
     // ═══════════════ ERC-721 — Onchain 2048 trophy ══════════════
@@ -262,7 +230,7 @@ contract Onchain2048 {
                 != IERC721Receiver.onERC721Received.selector) revert UnsafeRecipient();
     }
 
-    // ── On-chain metadata: JSON + SVG generated in the contract ─
+    // ── On-chain meta JSON + SVG generated in the contract ─
 
     function tokenURI(uint256 id) external view returns (string memory) {
         ownerOf(id);
@@ -434,7 +402,8 @@ contract Onchain2048 {
         return false;
     }
 
-    /// On-chain entropy; use a VRF in production for real stakes
+    /// On-chain entropy. With no pot at stake this only decides tile
+    /// spawns / trophy timing, so predictable entropy is acceptable.
     function _entropy(address p, uint256 nonce) internal view returns (uint256) {
         return uint256(keccak256(abi.encodePacked(
             blockhash(block.number - 1),
@@ -457,10 +426,10 @@ export interface FunctionInfo {
 export const FUNCTIONS: FunctionInfo[] = [
   {
     name: 'start',
-    signature: 'start() payable',
-    kind: 'payable',
-    gas: '≈ 58k',
-    desc: 'Start a new run by paying entryFee; two tiles spawn and the fee feeds the pot.',
+    signature: 'start()',
+    kind: 'write',
+    gas: '≈ 55k',
+    desc: 'Start a new run for free — two tiles spawn and play begins. The only cost is the Base transaction fee.',
   },
   {
     name: 'move',
@@ -498,44 +467,28 @@ export const FUNCTIONS: FunctionInfo[] = [
     desc: 'Direct access to the packed storage: board, score and state (0 none / 1 active / 2 won / 3 over).',
   },
   {
-    name: 'pot',
-    signature: 'pot() → uint256',
-    kind: 'view',
-    gas: 'free',
-    desc: 'Prize pool = contract balance minus the accrued house cut.',
-  },
-  {
     name: 'transferFrom / safeTransferFrom',
     signature: 'safeTransferFrom(address,address,uint256)',
     kind: 'write',
     gas: '≈ 32k',
     desc: 'Standard ERC-721 transfers, approvals and operator flags for the trophy token (O2048).',
   },
-  {
-    name: 'sweepHouseCut',
-    signature: 'sweepHouseCut(address)',
-    kind: 'owner',
-    gas: '≈ 31k',
-    desc: 'Withdraw the accrued 10% — callable by the contract owner only.',
-  },
 ];
 
 export const DEPLOY_MAINNET = `forge create contracts/Onchain2048.sol:Onchain2048 \\\\
   --rpc-url https://mainnet.base.org \\\\
-  --constructor-args 42000000000000 \\\\
   --verify \\\\
   --verifier-url https://api.basescan.org/api \\\\
   --etherscan-api-key $BASESCAN_API_KEY`;
 
 export const DEPLOY_TESTNET = `forge create contracts/Onchain2048.sol:Onchain2048 \\\\
   --rpc-url https://sepolia.base.org \\\\
-  --constructor-args 42000000000000 \\\\
   --account $WALLET_ALIAS \\\\
   --verify --verifier-url https://api-sepolia.basescan.org/api \\\\
   --etherscan-api-key $BASESCAN_API_KEY`;
 
-export const INTERACT_COMMANDS = `# Start a run, paying the 0.000042 ETH entry fee
-cast send $GAME "start()" --value 0.000042ether --rpc-url https://mainnet.base.org
+export const INTERACT_COMMANDS = `# Start a run — free, only pays the Base tx fee
+cast send $GAME "start()" --rpc-url https://mainnet.base.org
 
 # Move left (dir = 0)
 cast send $GAME "move(uint8)" 0 --rpc-url https://mainnet.base.org

@@ -53,13 +53,13 @@ const STEPS = [
   },
   {
     title: 'Deploy',
-    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia), or "Remix VM (Cancun)" for local testing. Select Onchain2048, set the constructor arg to 42000000000000 (the 0.000042 ETH entry fee, in wei) and hit Deploy. Important: leave the Value field at 0 — the constructor isn\u2019t payable; the fee is paid later by start().',
-    chips: ['ctor arg: 42000000000000', 'Value = 0', 'chainId 84532'],
+    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia), or "Remix VM (Cancun)" for local testing. Select Onchain2048 and hit Deploy — there are no constructor arguments and nothing to pay. Leave the Value field at 0.',
+    chips: ['no constructor args', 'Value = 0', 'chainId 84532'],
   },
   {
     title: 'Play & mint',
-    body: 'Remix\u2019s Value field only accepts whole numbers — so switch the unit dropdown from Ether to Wei and type 42000000000000 (= 0.000042 ETH), then call start(). After that, call move(dir) — 0 left, 1 right, 2 up, 3 down — and watch Moved events in the console. Read gridOf / scoreOf to follow your run. Push the score past 4096: nftOf(address) returns your trophy id, and tokenURI(id) returns the on-chain metadata — paste it into the decoder on the right.',
-    chips: ['Value unit → Wei', '42000000000000', 'start() → move(dir)', '4096 → RewardMinted'],
+    body: 'Call start() — it is free, it only costs the Base tx fee. Then call move(dir) — 0 left, 1 right, 2 up, 3 down — and watch Moved events in the console. Read gridOf / scoreOf to follow your run. Push the score past 4096: nftOf(address) returns your trophy id, and tokenURI(id) returns the on-chain metadata — paste it into the decoder on the right.',
+    chips: ['start() is free', 'start() → move(dir)', '4096 → RewardMinted'],
   },
 ];
 
@@ -282,29 +282,17 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">1</span>
                   <div>
-                    <p className="text-sm font-semibold text-white">Value must be 0 when you Deploy</p>
+                    <p className="text-sm font-semibold text-white">Keep the Value field at 0 — always</p>
                     <p className="mt-1 text-[13px] leading-6 text-slate-300">
-                      The constructor isn't payable — it only stores the fee. If the Value field still holds wei
-                      when you hit Deploy, Remix sends it with the creation transaction and the whole deploy
-                      reverts (“mined but execution failed”). Clear Value to <span className="font-mono text-[12px] text-white">0</span>, Deploy,
-                      and pay the fee later through <span className="font-mono text-[12px] text-cyan-bright">start()</span>.
+                      The game is free-to-play: no function is payable, so there is never a reason to put wei in the
+                      Value field. If it holds a value when you Deploy or call a function, Remix sends it along and the
+                      transaction reverts. Clear it to <span className="font-mono text-[12px] text-white">0</span> and you're set —
+                      the only cost is gas.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">2</span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">“I can't type a decimal in the Value field”</p>
-                    <p className="mt-1 text-[13px] leading-6 text-slate-300">
-                      The field only takes whole numbers in the selected unit. Switch the unit dropdown next to
-                      Value from <span className="font-mono text-[12px] text-slate-400">Ether</span> to <span className="font-mono text-[12px] text-mint">Wei</span> and
-                      enter <span className="font-mono text-[12px] text-white">42000000000000</span> — the exact wei value of 0.000042 ETH —
-                      then call <span className="font-mono text-[12px] text-cyan-bright">start()</span>.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">3</span>
                   <div>
                     <p className="text-sm font-semibold text-white">“Deploy fails: out of gas”</p>
                     <p className="mt-1 text-[13px] leading-6 text-slate-300">

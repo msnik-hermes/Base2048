@@ -37,7 +37,7 @@ function GameIntro({ liveBlock, gwei }: { liveBlock: number; gwei: number }) {
       </div>
       <div className="flex shrink-0 rounded-2xl border border-line bg-panel">
         {[
-          { label: 'Entry fee', value: '0.000042 ETH', sub: 'start()' },
+          { label: 'Cost to play', value: 'Free', sub: 'only the Base tx fee' },
           { label: 'Gas / move', value: '≈ 35k', sub: liveBlock > 0 ? `${gwei} gwei now` : 'move(uint8)' },
           { label: 'NFT trophy', value: '@ 4,096 pts', sub: 'ERC-721 · on-chain SVG' },
         ].map((s, i) => (

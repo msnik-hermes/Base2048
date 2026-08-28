@@ -134,8 +134,8 @@ function PackingViz({ tiles }: { tiles: Tile[] }) {
 const MECHANICS = [
   {
     num: '01',
-    title: 'Entry = your share of the pot',
-    text: 'Every start() pays entryFee (default 0.000042 ETH); the money stays in the contract and builds the pot.',
+    title: 'Entry is free — gas only',
+    text: 'start() costs nothing but the Base transaction fee. There is no entry fee, no pot and no house cut — the only cost of playing is gas.',
     color: 'text-base-bright',
   },
   {
@@ -146,8 +146,8 @@ const MECHANICS = [
   },
   {
     num: '03',
-    title: 'First 2048 takes 90% of the pot',
-    text: 'The moment a nibble hits 11, the contract pays the prize out on the spot and accrues the 10% fee in houseCut.',
+    title: 'First 2048 = you win',
+    text: 'The moment a nibble hits 11, the run flips to ST_WON. No money changes hands — the prize is the glory (and you can keep playing past it).',
     color: 'text-amber',
   },
   {
