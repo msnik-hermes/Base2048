@@ -198,11 +198,11 @@ contract Onchain2048 is VRFConsumerBaseV2Plus {
         address starter = _pendingStart[requestId];
         if (starter != address(0)) {
             delete _pendingStart[requestId];
-            Run storage run = _runs[starter];
-            if (run.state != ST_PENDING) return;         // stale request, ignore
+            Run storage fresh = _runs[starter];
+            if (fresh.state != ST_PENDING) return;       // stale request, ignore
             uint64 b = _spawn(_spawn(0, randomWords[0]), randomWords[1]);
-            run.board = b;
-            run.state = ST_ACTIVE;
+            fresh.board = b;
+            fresh.state = ST_ACTIVE;
             emit RunStarted(starter, b);
             return;
         }
