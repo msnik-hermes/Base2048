@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Dir, Tile } from '../game/logic';
 import type { NftReward } from '../game/useGame';
 import { ActionButton } from './ui';
+import { HumanGate } from './HumanGate';
 
 const TILE_CLASS: Record<number, string> = {
   1: 't2', 2: 't4', 3: 't8', 4: 't16', 5: 't32', 6: 't64',
@@ -29,6 +30,10 @@ export function GameBoard({
   nft,
   pending,
   noRun,
+  humanGate,
+  onHumanToken,
+  humanVerifying,
+  humanError,
   onMove,
   onRestart,
   onContinue,
@@ -41,6 +46,10 @@ export function GameBoard({
   nft: NftReward | null;
   pending?: null | 'start' | 'move';
   noRun?: boolean;
+  humanGate?: boolean;
+  onHumanToken?: (token: string) => void;
+  humanVerifying?: boolean;
+  humanError?: string | null;
   onMove: (d: Dir) => void;
   onRestart: () => void;
   onContinue: () => void;
@@ -150,6 +159,21 @@ export function GameBoard({
             </div>
           ))}
         </div>
+
+        {/* human-verification gate — shown before any on-chain play */}
+        {humanGate && (
+          <div className="overlay absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[rgba(4,10,28,0.92)] backdrop-blur-[3px]">
+            <p className="font-display text-2xl text-white">Verify you're human</p>
+            <p className="max-w-[280px] text-center text-sm leading-6 text-slate-400">
+              One quick check before you start sending transactions on-chain.
+            </p>
+            <HumanGate
+              onToken={onHumanToken ?? (() => {})}
+              verifying={humanVerifying ?? false}
+              error={humanError ?? null}
+            />
+          </div>
+        )}
 
         {/* won overlay */}
         {won && !keepPlaying && (

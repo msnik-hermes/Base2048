@@ -10,6 +10,7 @@ import { RemixSection } from './components/RemixSection';
 import { SecurityReview } from './components/SecurityReview';
 import { SidePanel } from './components/SidePanel';
 import { useBaseChain } from './hooks/useBaseChain';
+import { useHuman } from './hooks/useHuman';
 import { useOnchain, type NetId } from './hooks/useOnchain';
 import { useGame } from './game/useGame';
 
@@ -95,6 +96,7 @@ function Main() {
   const [contractAddr, setContractAddr] = useState('0x503a2ebedd3d021d5396cf237ee009fa10cf1c23');
   const oc = useOnchain(netId, contractAddr);
   const onchain = oc.active;
+  const human = useHuman();
   const game = useGame(chain.block, !onchain);
 
   const tiles = onchain ? oc.tiles : game.tiles;
@@ -103,6 +105,8 @@ function Main() {
   const won = onchain ? oc.state?.runState === 2 : game.won;
   const over = onchain ? oc.state?.runState === 3 : game.over;
   const noRun = onchain && (oc.state?.runState ?? 0) === 0;
+  // Gate on-chain play behind a one-time human check (production only — dev skips it).
+  const humanGate = Boolean(onchain && import.meta.env.PROD && !human.verified);
   const onchainNft = onchain
     ? {
         id: oc.state?.nftId ?? 0,
@@ -143,6 +147,10 @@ function Main() {
                   nft={onchain ? oc.nftReward : game.nft}
                   pending={onchain ? oc.pending : null}
                   noRun={noRun}
+                  humanGate={humanGate}
+                  onHumanToken={human.verify}
+                  humanVerifying={human.verifying}
+                  humanError={human.error}
                   onMove={onchain ? oc.play : game.move}
                   onRestart={onchain ? oc.startRun : game.restart}
                   onContinue={onchain ? oc.startRun : game.continueAfterWin}
