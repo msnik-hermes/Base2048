@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NETWORKS, type NetId, type OcApi } from '../hooks/useOnchain';
 import { fmtNum } from '../hooks/useBaseChain';
 import { Reveal } from './ui';
@@ -9,20 +10,79 @@ const RUN_BADGE: Record<number, { label: string; cls: string }> = {
   3: { label: 'Game over', cls: 'bg-rose/15 text-rose border-rose/40' },
 };
 
+const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+
+async function rpc(url: string, method: string, params: unknown[]): Promise<string> {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result as string;
+}
+
+function weiToEth(wei: string): string {
+  try {
+    const b = BigInt(wei);
+    const eth = Number(b / 10n ** 14n) / 1e4;
+    return eth.toFixed(eth > 0 && eth < 0.0001 ? 8 : 6);
+  } catch {
+    return '0';
+  }
+}
+
+type Probe =
+  | { status: 'idle' | 'checking' | 'error' }
+  | { status: 'found'; codeKb: number; balanceWei: string }
+  | { status: 'empty' };
+
 export function OnchainBar({
   netId,
   onNet,
   address,
   onAddress,
   oc,
+  quick,
 }: {
   netId: NetId;
   onNet: (n: NetId) => void;
   address: string;
   onAddress: (a: string) => void;
   oc: OcApi;
+  quick?: { address: string; label: string; net: NetId };
 }) {
   const runState = oc.state?.runState ?? 0;
+  const [probe, setProbe] = useState<Probe>({ status: 'idle' });
+
+  // ── live deployment probe: is there code at this address? ─────
+  useEffect(() => {
+    setProbe({ status: 'idle' });
+    const a = address.trim();
+    if (!ADDR_RE.test(a)) return;
+    let stop = false;
+    const t = window.setTimeout(async () => {
+      setProbe({ status: 'checking' });
+      try {
+        const [code, bal] = await Promise.all([
+          rpc(NETWORKS[netId].rpc, 'eth_getCode', [a, 'latest']),
+          rpc(NETWORKS[netId].rpc, 'eth_getBalance', [a, 'latest']),
+        ]);
+        if (stop) return;
+        if (!code || code === '0x') setProbe({ status: 'empty' });
+        else setProbe({ status: 'found', codeKb: (code.length - 2) / 2 / 1024, balanceWei: bal });
+      } catch {
+        if (!stop) setProbe({ status: 'error' });
+      }
+    }, 450);
+    return () => {
+      stop = true;
+      window.clearTimeout(t);
+    };
+  }, [address, netId]);
+
+  const net = NETWORKS[netId];
 
   return (
     <Reveal className="mb-8">
@@ -119,6 +179,90 @@ export function OnchainBar({
               </button>
             )}
           </div>
+
+          {/* quick-load the project's own deployment */}
+          {quick && (
+            <button
+              onClick={() => {
+                onNet(quick.net);
+                onAddress(quick.address);
+              }}
+              className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-gold/40 bg-gold/[0.05] px-4 py-2.5 text-left transition-all hover:border-gold hover:bg-gold/[0.09] active:scale-[0.995]"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold/20 text-gold">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" strokeLinejoin="round" />
+                  <path d="m3 7 9 5 9-5M12 22V12" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[12px] font-semibold text-gold">{quick.label}</span>
+                <span className="block truncate font-mono text-[10px] text-slate-500 group-hover:text-slate-400">
+                  {quick.address} · click to load {NETWORKS[quick.net].label}
+                </span>
+              </span>
+              <span className="ml-auto shrink-0 font-mono text-[10px] text-slate-600 group-hover:text-gold transition-colors">
+                load ↓
+              </span>
+            </button>
+          )}
+
+          {/* live probe result */}
+          {oc.validAddress && probe.status !== 'idle' && (
+            <div
+              className={`tx-row flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-4 py-2.5 ${
+                probe.status === 'found'
+                  ? 'border-mint/35 bg-mint/[0.05]'
+                  : probe.status === 'empty'
+                    ? 'border-rose/35 bg-rose/[0.06]'
+                    : 'border-line bg-ink'
+              }`}
+            >
+              {probe.status === 'checking' && (
+                <>
+                  <span className="spinner h-3 w-3 rounded-full border-2 border-base-bright border-t-transparent" />
+                  <span className="font-mono text-[11px] text-slate-400">
+                    probing {net.label} — eth_getCode @ {address.trim().slice(0, 10)}…
+                  </span>
+                </>
+              )}
+              {probe.status === 'found' && (
+                <>
+                  <span className="flex items-center gap-1.5 font-mono text-[11px] text-mint">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    LIVE on {net.label}
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    runtime <span className="text-white">{probe.codeKb.toFixed(1)} KB</span>
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    holds <span className="text-gold">{weiToEth(probe.balanceWei)} ETH</span>{' '}
+                    <span className="text-slate-600">(pot + house cut)</span>
+                  </span>
+                  <a
+                    href={`${net.explorer}/address/${address.trim()}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto font-mono text-[10px] text-cyan-bright underline-offset-2 hover:underline"
+                  >
+                    open in Basescan ↗
+                  </a>
+                </>
+              )}
+              {probe.status === 'empty' && (
+                <span className="font-mono text-[11px] leading-5 text-rose">
+                  ✗ no contract code at this address on {net.label} — wrong network, or the address never deployed there.
+                </span>
+              )}
+              {probe.status === 'error' && (
+                <span className="font-mono text-[11px] text-slate-500">
+                  RPC unreachable right now — the probe will retry when you edit the address.
+                </span>
+              )}
+            </div>
+          )}
 
           {/* live run status */}
           {oc.active && oc.state && (

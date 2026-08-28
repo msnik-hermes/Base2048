@@ -95,6 +95,11 @@ export default function App() {
               address={contractAddr}
               onAddress={setContractAddr}
               oc={oc}
+              quick={{
+                address: '0x65AE2b9f78bF8f95305cdfE87D0D85E98D48aF09',
+                label: 'Our deployment — verified live',
+                net: 'sepolia',
+              }}
             />
 
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-8">
