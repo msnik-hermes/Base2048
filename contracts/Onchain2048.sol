@@ -101,7 +101,7 @@ contract Onchain2048 is VRFConsumerBaseV2Plus {
     error NoopMove();
     error RunBusy();
     error PendingRandomness();
-    error ZeroAddress();
+    // NOTE: ZeroAddress() is inherited from VRFConsumerBaseV2Plus — redeclaring it here would clash.
     error TokenGone();
     error NotAuthorized();
     error WrongOwner();
