@@ -81,6 +81,13 @@ const FINDINGS: {
     what: 'Basescan shows two medium advisories for the solc version used at compile time: UnsoundSpillInMutualRecursion (needs viaIR + mutually recursive functions) and InheritanceOrderReversalOnStorageEndWarning (needs a "layout at" storage-end warning + inheritance). This contract uses neither viaIR, nor mutual recursion, nor layout specifiers, nor inheritance — both triggers are provably absent.',
     status: 'False positive for this source. To clear the banner, recompile & redeploy with solc 0.8.36 (first release fixing both, SOL-2026-2 / SOL-2026-3); the ^0.8.24 pragma already allows it.',
   },
+  {
+    id: 'S-10',
+    sev: 'info',
+    area: 'No emergency exit — “stuck” ETH',
+    what: 'If nobody ever tiles 2048, the pot sits in the contract with no withdrawal path. Tempting “fix”: an owner emergency-drain function. That is itself the vulnerability — a single call that lets the deployer walk off with every player’s entry fee is the textbook rug vector.',
+    status: 'Kept as-is by design: the pot stays claimable by any future winner, which is strictly safer than an owner rescue. The owner can only touch the accrued 10% (sweepHouseCut). If a rescue is ever wanted, it must be time-locked (e.g. claimable only after N blocks of total inactivity) and announced before players deposit.',
+  },
 ];
 
 // ── checklist (persisted) ───────────────────────────────────────
@@ -257,7 +264,7 @@ export function SecurityReview() {
         <div className="overflow-hidden rounded-2xl border border-line">
           <div className="flex items-center justify-between border-b border-line bg-panel px-5 py-4">
             <h3 className="font-display text-xl text-white">Findings</h3>
-            <span className="font-mono text-[11px] text-slate-500">9 items · contract reread line-by-line</span>
+            <span className="font-mono text-[11px] text-slate-500">10 items · contract reread line-by-line</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-right">
