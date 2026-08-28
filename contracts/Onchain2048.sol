@@ -32,6 +32,8 @@ pragma solidity ^0.8.24;
 /// Field order & types are ABI-identical to the official Chainlink package,
 /// so the calldata produced here is byte-for-byte what the real coordinator expects.
 library VRFV2PlusClient {
+    bytes4 public constant EXTRA_ARGS_V1_TAG = bytes4(keccak256("VRF ExtraArgsV1"));
+
     struct RandomWordsRequest {
         bytes32 keyHash;
         uint256 subId;
@@ -46,7 +48,7 @@ library VRFV2PlusClient {
     }
 
     function _argsToBytes(ExtraArgsV1 memory extraArgs) internal pure returns (bytes memory bts) {
-        bts = abi.encode(extraArgs);
+        return abi.encodeWithSelector(EXTRA_ARGS_V1_TAG, extraArgs);
     }
 }
 
