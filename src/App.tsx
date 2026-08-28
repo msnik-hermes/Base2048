@@ -91,8 +91,8 @@ export default function App() {
 
 function Main() {
   const chain = useBaseChain();
-  const [netId, setNetId] = useState<NetId>('sepolia');
-  const [contractAddr, setContractAddr] = useState('');
+  const [netId, setNetId] = useState<NetId>('mainnet');
+  const [contractAddr, setContractAddr] = useState('0x629d0d9acb660afb0daf4d0c740e287473701570');
   const oc = useOnchain(netId, contractAddr);
   const onchain = oc.active;
   const game = useGame(chain.block, !onchain);

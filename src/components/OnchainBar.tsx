@@ -11,7 +11,7 @@ const RUN_BADGE: Record<number, { label: string; cls: string }> = {
 };
 
 export const KNOWN_DEPLOYMENTS: { label: string; address: string; net: NetId }[] = [
-  { label: 'Our deployment — verified live', address: '0x65AE2b9f78bF8f95305cdfE87D0D85E98D48aF09', net: 'sepolia' },
+  { label: 'Base2048 — live on Base Mainnet', address: '0x629d0d9acb660afb0daf4d0c740e287473701570', net: 'mainnet' },
 ];
 
 /** Probes the address with eth_getCode to confirm a contract really lives there. */

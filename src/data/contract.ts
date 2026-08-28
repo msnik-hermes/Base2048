@@ -109,9 +109,9 @@ export const VRF_NETWORKS = [
   },
   {
     label: 'Base Mainnet',
-    coordinator: '<from docs.chain.link/vrf/v2-5/supported-networks>',
-    keyHash: '<key hash from the same page>',
-    keyHashNote: 'verify before deploying',
+    coordinator: '0xd5D517aBE5cF79B7e95eC98dB0f0277788aFF634',
+    keyHash: '0xdc2f87677b01473c763cb0aee938ed3341512f6057324a584e5944e786144d70',
+    keyHashNote: '30 gwei key hash',
   },
 ];
 
