@@ -32,6 +32,7 @@ export function TopBar({ chain }: { chain: ChainState }) {
             ['#contract', 'Contract'],
             ['#remix', 'Remix'],
             ['#deploy', 'Deploy'],
+            ['#security', 'Security'],
           ].map(([href, label]) => (
             <a
               key={href}
@@ -123,7 +124,11 @@ export function Footer() {
             <p className="font-display text-lg text-white">2048 on Base</p>
             <p className="mt-1 text-[13px] text-slate-500 leading-6 max-w-md">
               A complete educational build: Solidity contract + frontend. Blockhash entropy is for fun —
-              use Chainlink VRF for anything with real stakes.
+              use Chainlink VRF for anything with real stakes.{' '}
+              <a href="#security" className="text-base-bright underline underline-offset-2 hover:text-white transition-colors">
+                Read the security review
+              </a>{' '}
+              before you deploy.
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">
