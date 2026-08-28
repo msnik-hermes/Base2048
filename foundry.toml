@@ -1,13 +1,16 @@
 [profile.default]
 src = "contracts"
-test = "test"
 out = "out"
 libs = ["lib"]
-solc_version = "0.8.24"
+test = "test"
+remappings = ["forge-std/=lib/forge-std/src/"]
+# 0.8.36 is the first release where both of the banner bugs are fixed:
+# SOL-2026-2 (UnsoundSpillInMutualRecursion) & SOL-2026-3 (InheritanceOrderReversal...)
+solc_version = "0.8.36"
 optimizer = true
 optimizer_runs = 200
+# Never enable viaIR here — UnsoundSpillInMutualRecursion needs it, we don't.
 via_ir = false
-remappings = ["forge-std/=lib/forge-std/src/"]
 
 [fmt]
 line_length = 110

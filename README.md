@@ -46,7 +46,7 @@ forge create contracts/Onchain2048.sol:Onchain2048 \
 
 ## Test on Remix (no install)
 
-1. [remix.ethereum.org](https://remix.ethereum.org) → create `Onchain2048.sol`, paste the source, compile with **solc ≥ 0.8.24** and tick **Optimization (200)** — without it the string-heavy metadata bloats the bytecode and deploy runs out of gas at Remix's 3M default limit.
+1. [remix.ethereum.org](https://remix.ethereum.org) → create `Onchain2048.sol`, paste the source, compile with **solc 0.8.36** (anything ≥ 0.8.24 works, but 0.8.29–0.8.35 show Basescan's two medium compiler-bug advisories — neither can trigger here: no viaIR, no mutual recursion, no inheritance, no `layout at`; 0.8.36 is the first release fixing both) and tick **Optimization (200)** — without it the string-heavy metadata bloats the bytecode and deploy runs out of gas at Remix's 3M default limit. Keep **viaIR off**.
 2. Deploy & Run → environment `Remix VM (Cancun)` (free) or `Injected Provider – MetaMask` on **Base Sepolia** (chainId 84532, faucet: faucet.base.org).
 3. Constructor arg: `42000000000000`. **Leave the Value field at 0** — the constructor isn't payable; the entry fee is paid via `start()`.
 4. Value field only takes whole numbers: set the unit to **Wei** and enter `42000000000000` (= 0.000042 ETH), then call `start()`.

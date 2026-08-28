@@ -74,6 +74,13 @@ const FINDINGS: {
     what: 'The string-heavy metadata could push runtime bytecode past the 24,576-byte limit.',
     status: 'With optimizer (200 runs) the contract deploys at ~15 KB — verified by the test suite, which deploys it in every case.',
   },
+  {
+    id: 'S-09',
+    sev: 'info',
+    area: 'Basescan compiler-bug banner (0.8.29–0.8.35)',
+    what: 'Basescan shows two medium advisories for the solc version used at compile time: UnsoundSpillInMutualRecursion (needs viaIR + mutually recursive functions) and InheritanceOrderReversalOnStorageEndWarning (needs a "layout at" storage-end warning + inheritance). This contract uses neither viaIR, nor mutual recursion, nor layout specifiers, nor inheritance — both triggers are provably absent.',
+    status: 'False positive for this source. To clear the banner, recompile & redeploy with solc 0.8.36 (first release fixing both, SOL-2026-2 / SOL-2026-3); the ^0.8.24 pragma already allows it.',
+  },
 ];
 
 // ── checklist (persisted) ───────────────────────────────────────
@@ -250,7 +257,7 @@ export function SecurityReview() {
         <div className="overflow-hidden rounded-2xl border border-line">
           <div className="flex items-center justify-between border-b border-line bg-panel px-5 py-4">
             <h3 className="font-display text-xl text-white">Findings</h3>
-            <span className="font-mono text-[11px] text-slate-500">8 items · contract reread line-by-line</span>
+            <span className="font-mono text-[11px] text-slate-500">9 items · contract reread line-by-line</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-right">

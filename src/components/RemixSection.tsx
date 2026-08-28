@@ -48,8 +48,8 @@ const STEPS = [
   },
   {
     title: 'Load the contract into Remix',
-    body: 'Open remix.ethereum.org → File Explorer → new file Onchain2048.sol → paste the source (or drop in the file you downloaded from this page). Compile with the Solidity compiler — 0.8.24 or newer; Remix\u2019s current default works as-is.',
-    chips: ['solc ≥ 0.8.24', 'single file, no imports'],
+    body: 'Open remix.ethereum.org → File Explorer → new file Onchain2048.sol → paste the source (or drop in the file you downloaded from this page). In the Solidity Compiler tab pick 0.8.36 or newer (anything ≥ 0.8.24 compiles, but 0.8.29–0.8.35 show Basescan\u2019s two compiler-bug advisories even though this code can\u2019t trigger either — 0.8.36 clears the banner), tick Optimization (200), keep viaIR off.',
+    chips: ['solc 0.8.36 recommended', 'optimization 200', 'viaIR off', 'single file, no imports'],
   },
   {
     title: 'Deploy',
