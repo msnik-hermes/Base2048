@@ -6,6 +6,7 @@ import { DeploySection } from './components/DeploySection';
 import { GameBoard } from './components/GameBoard';
 import { OnchainBar } from './components/OnchainBar';
 import { RemixSection } from './components/RemixSection';
+import { SecurityReview } from './components/SecurityReview';
 import { SidePanel } from './components/SidePanel';
 import { useBaseChain } from './hooks/useBaseChain';
 import { useOnchain, type NetId } from './hooks/useOnchain';
@@ -149,6 +150,7 @@ export default function App() {
           <ContractSection />
           <RemixSection tiles={tiles} score={score} moves={moves} />
           <DeploySection liveBlock={chain.block} />
+          <SecurityReview />
         </main>
 
         <Footer />
