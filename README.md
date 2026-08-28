@@ -69,6 +69,14 @@ npm run dev      # local dev server
 npm run build    # production build → dist/
 ```
 
+### Play your deployed contract from the site
+
+The game ships with an **on-chain mode**: paste your deployed contract address into the bar above the board, pick
+**Base Sepolia** or **Base Mainnet**, and connect your wallet (MetaMask). The site then reads `gridOf` / `scoreOf` /
+`nftOf` / `pot` live, sends real `start()` and `move(dir)` transactions, decodes custom-error reverts (a `NoopMove`
+just shakes the board — no gas spent), and renders your minted trophy straight from the on-chain `tokenURI()` SVG.
+Until you connect, the page runs a pixel-perfect local simulation of the exact same engine.
+
 The page opens straight into the playable game: keyboard / swipe controls, per-move transaction log, a live `uint64` storage snapshot of your board, live Base block & gas data, the contract source with highlighting, and a deploy guide.
 
 ## Quick start (clone)

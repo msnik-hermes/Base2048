@@ -38,6 +38,8 @@ export function GameBoard({
   keepPlaying,
   nudgeKey,
   nft,
+  pending,
+  noRun,
   onMove,
   onRestart,
   onContinue,
@@ -48,6 +50,8 @@ export function GameBoard({
   keepPlaying: boolean;
   nudgeKey: number;
   nft: NftReward | null;
+  pending?: null | 'start' | 'move';
+  noRun?: boolean;
   onMove: (d: Dir) => void;
   onRestart: () => void;
   onContinue: () => void;
@@ -170,6 +174,30 @@ export function GameBoard({
           <p className="font-display text-4xl text-rose">GAME OVER</p>
           <p className="text-sm text-slate-400">No moves left — exactly like the contract reverting.</p>
           <ActionButton onClick={onRestart}>Play again</ActionButton>
+        </div>
+      )}
+
+      {/* on-chain: no active run yet */}
+      {noRun && !pending && (
+        <div className="overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[rgba(4,10,28,0.78)] backdrop-blur-[2px]">
+          <p className="font-display text-3xl text-white">No active run</p>
+          <p className="max-w-[280px] text-center text-sm leading-6 text-slate-400">
+            This wallet has no run on the contract yet — <span className="font-mono text-cyan-bright">start()</span> spawns
+            two tiles and pays the entry fee into the pot.
+          </p>
+          <ActionButton variant="amber" onClick={onRestart}>
+            start() — new run
+          </ActionButton>
+        </div>
+      )}
+
+      {/* on-chain: transaction pending on Base */}
+      {pending && (
+        <div className="overlay absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[rgba(4,10,28,0.7)] backdrop-blur-[2px]">
+          <span className="spinner h-9 w-9 rounded-full border-[3px] border-base-bright border-t-transparent" />
+          <p className="font-mono text-sm text-slate-300">
+            {pending === 'start' ? 'start()' : 'move(dir)'} pending — waiting for Base…
+          </p>
         </div>
       )}
     </div>

@@ -21,12 +21,13 @@ export interface NftReward {
 
 export interface TxEntry {
   id: number;
-  kind: 'move' | 'nft';
-  dir: Dir;
+  kind: 'move' | 'nft' | 'start';
+  dir?: Dir;
+  label?: string;
   gained: number;
   score: number;
   hash: string;
-  gas: number;
+  gas: number | string;
   block: number;
   tokenId?: number;
 }
@@ -63,7 +64,7 @@ const NFT_LIFETIME_KEY = 'base2048:nftLifetime';
 let txId = 1;
 let tokenSeq = 1;
 
-export function useGame(currentBlock: number): GameApi {
+export function useGame(currentBlock: number, enabled = true): GameApi {
   const [tiles, setTiles] = useState<Tile[]>(() => newRun());
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => {
@@ -91,7 +92,7 @@ export function useGame(currentBlock: number): GameApi {
 
   const move = useCallback(
     (dir: Dir) => {
-      if (over || (won && !keepPlaying) || lockRef.current) return;
+      if (!enabled || over || (won && !keepPlaying) || lockRef.current) return;
 
       const res = applyMove(tilesRef.current, dir);
       if (!res.moved) {
@@ -162,7 +163,7 @@ export function useGame(currentBlock: number): GameApi {
 
       window.setTimeout(() => (lockRef.current = false), 90);
     },
-    [over, won, keepPlaying, score, best, moves, currentBlock],
+    [enabled, over, won, keepPlaying, score, best, moves, currentBlock],
   );
 
   const restart = useCallback(() => {

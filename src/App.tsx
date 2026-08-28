@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { ArchSection } from './components/ArchSection';
 import { Background, Footer, TopBar } from './components/Chrome';
 import { ContractSection } from './components/ContractSection';
 import { DeploySection } from './components/DeploySection';
 import { GameBoard } from './components/GameBoard';
+import { OnchainBar } from './components/OnchainBar';
 import { RemixSection } from './components/RemixSection';
 import { SidePanel } from './components/SidePanel';
 import { useBaseChain } from './hooks/useBaseChain';
+import { useOnchain, type NetId } from './hooks/useOnchain';
 import { useGame } from './game/useGame';
 
 function GameIntro({ liveBlock, gwei }: { liveBlock: number; gwei: number }) {
@@ -27,7 +30,8 @@ function GameIntro({ liveBlock, gwei }: { liveBlock: number; gwei: number }) {
           The board lives in a single <span className="font-mono text-cyan-bright">uint64</span> and this page runs
           the exact same Solidity algorithm as the contract below. Push a direction — the transaction log fills
           instantly, and if your score crosses{' '}
-          <span className="font-mono text-gold">4096</span> the contract mints you a one-of-one NFT.
+          <span className="font-mono text-gold">4096</span> the contract mints you a one-of-one NFT. Deployed your own
+          copy? Plug its address in below and play it live with your wallet.
         </p>
       </div>
       <div className="flex shrink-0 rounded-2xl border border-line bg-panel">
@@ -49,7 +53,29 @@ function GameIntro({ liveBlock, gwei }: { liveBlock: number; gwei: number }) {
 
 export default function App() {
   const chain = useBaseChain();
-  const game = useGame(chain.block);
+  const [netId, setNetId] = useState<NetId>('sepolia');
+  const [contractAddr, setContractAddr] = useState('');
+  const oc = useOnchain(netId, contractAddr);
+  const onchain = oc.active;
+  const game = useGame(chain.block, !onchain);
+
+  // ── mode-aware values: live contract state wins when connected ──
+  const tiles = onchain ? oc.tiles : game.tiles;
+  const score = onchain ? oc.state?.score ?? 0 : game.score;
+  const moves = onchain ? oc.state?.moves ?? 0 : game.moves;
+  const won = onchain ? oc.state?.runState === 2 : game.won;
+  const over = onchain ? oc.state?.runState === 3 : game.over;
+  const noRun = onchain && (oc.state?.runState ?? 0) === 0;
+  const onchainNft = onchain
+    ? {
+        id: oc.state?.nftId ?? 0,
+        image: oc.nftImage,
+        link:
+          oc.state && oc.state.nftId > 0
+            ? `${oc.net.explorer}/nft/${contractAddr.trim()}/${oc.state.nftId}`
+            : null,
+      }
+    : null;
 
   return (
     <div className="relative min-h-screen overflow-x-clip text-slate-200">
@@ -61,43 +87,67 @@ export default function App() {
           {/* ═══ opens with the game itself ═══ */}
           <section id="game" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16 pt-12 md:pt-16">
             <GameIntro liveBlock={chain.block} gwei={chain.gwei} />
+
+            <OnchainBar
+              netId={netId}
+              onNet={setNetId}
+              address={contractAddr}
+              onAddress={setContractAddr}
+              oc={oc}
+            />
+
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-8">
               <div className="mx-auto w-full max-w-[520px]">
                 <GameBoard
-                  tiles={game.tiles}
-                  won={game.won}
-                  over={game.over}
-                  keepPlaying={game.keepPlaying}
-                  nudgeKey={game.nudgeKey}
-                  nft={game.nft}
-                  onMove={game.move}
-                  onRestart={game.restart}
-                  onContinue={game.continueAfterWin}
+                  tiles={tiles}
+                  won={won}
+                  over={over}
+                  keepPlaying={onchain ? false : game.keepPlaying}
+                  nudgeKey={onchain ? oc.nudgeKey : game.nudgeKey}
+                  nft={onchain ? oc.nftReward : game.nft}
+                  pending={onchain ? oc.pending : null}
+                  noRun={noRun}
+                  onMove={onchain ? oc.play : game.move}
+                  onRestart={onchain ? oc.startRun : game.restart}
+                  onContinue={onchain ? oc.startRun : game.continueAfterWin}
                 />
                 <p className="mt-4 text-center text-[12px] text-slate-600">
-                  On the real contract, every arrow key is a <span className="font-mono text-slate-500">move(dir)</span> signed by you
+                  {onchain ? (
+                    <>
+                      Connected to <span className="font-mono text-mint">{oc.net.label}</span> — every arrow key sends a
+                      real, wallet-signed <span className="font-mono text-slate-500">move(dir)</span>
+                    </>
+                  ) : (
+                    <>
+                      On the real contract, every arrow key is a{' '}
+                      <span className="font-mono text-slate-500">move(dir)</span> signed by you
+                    </>
+                  )}
                 </p>
               </div>
               <SidePanel
-                score={game.score}
+                score={score}
                 best={game.best}
-                moves={game.moves}
-                tiles={game.tiles}
-                lastGain={game.lastGain}
-                txs={game.txs}
-                nft={game.nft}
+                moves={moves}
+                tiles={tiles}
+                lastGain={onchain ? null : game.lastGain}
+                txs={onchain ? oc.txs : game.txs}
+                nft={onchain ? oc.nftReward : game.nft}
                 nftLifetime={game.nftLifetime}
-                canUndo={game.canUndo}
+                canUndo={onchain ? false : game.canUndo}
                 liveBlock={chain.block}
-                onRestart={game.restart}
+                onchain={onchain}
+                explorer={onchain ? oc.net.explorer : null}
+                onchainNft={onchainNft}
+                onRestart={onchain ? oc.startRun : game.restart}
                 onUndo={game.undo}
               />
             </div>
           </section>
 
-          <ArchSection tiles={game.tiles} />
+          <ArchSection tiles={tiles} />
           <ContractSection />
-          <RemixSection tiles={game.tiles} score={game.score} moves={game.moves} />
+          <RemixSection tiles={tiles} score={score} moves={moves} />
           <DeploySection liveBlock={chain.block} />
         </main>
 
