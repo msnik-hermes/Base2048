@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { VRF_NETWORKS, VRF_SETUP } from '../data/contract';
 import { Reveal, SectionHeader } from './ui';
 
 // ── findings (free-to-play edition: no entry fee, no pot, no owner) ──
@@ -44,11 +45,11 @@ const FINDINGS: {
   },
   {
     id: 'S-04',
-    sev: 'info',
-    area: 'Entropy — _entropy()',
-    what: 'blockhash + timestamp + player is predictable, so tile spawns can be influenced by a player contract.',
+    sev: 'safe',
+    area: 'Randomness — Chainlink VRF v2.5',
+    what: 'The old blockhash+timestamp entropy was predictable and could be steered by validators or try/catch player contracts.',
     status:
-      'With no pot at stake this only affects which tiles spawn and when a trophy can be minted — i.e. scoreboard cosmetics. Acceptable for a free game. Only revisit (Chainlink VRF) if real value is ever added.',
+      'MITIGATED. Spawns now come from Chainlink VRF v2.5 via commit–reveal: move() applies the deterministic slide/merge, then fulfillRandomWords() — callable only by the VRF coordinator — spawns the tile from verified random words that never existed on-chain before. The fulfilment callback is guarded (onlyCoordinatorCanFulfill) and stale requests are ignored.',
   },
   {
     id: 'S-05',
@@ -80,12 +81,21 @@ const FINDINGS: {
     status:
       'False positive — neither trigger (viaIR + mutual recursion, or layout-at + inheritance) exists in this source. Compiling with 0.8.36 clears the banner; the ^0.8.24 pragma already allows it.',
   },
+  {
+    id: 'S-09',
+    sev: 'info',
+    area: 'VRF availability & cost',
+    what: 'Every start() and move() consumes LINK from the VRF subscription; if it runs dry, new requests stop being fulfilled.',
+    status:
+      'Operational, not a security issue: runs simply pause at ST_PENDING / awaitingMove until the subscription is topped up — no state can be corrupted. Callback gas is capped at 300k and numWords at 1–2, so per-request cost stays small and bounded.',
+  },
 ];
 
 // ── checklist (persisted) ───────────────────────────────────────
 const CHECKS = [
-  'forge install foundry-rs/forge-std --no-commit && forge test -vv — all tests green',
-  'Deployed & verified on Base Sepolia; source readable on Basescan',
+  'forge install forge-std + smartcontractkit/chainlink, then forge test -vv — all green',
+  'VRF v2.5 subscription created on vrf.chain.link and funded with (test) LINK',
+  'Deployed & verified on Base Sepolia with coordinator / subId / keyHash — spawns fulfil within seconds',
   'Played a full Sepolia run: start() → moves → win → NFT visible with its SVG',
   'Compiled with solc 0.8.36 (no compiler-bug banner on Basescan)',
   'Independent review by someone who did not write this code',
@@ -158,16 +168,11 @@ function Checklist() {
   );
 }
 
-// ── entropy note snippet ────────────────────────────────────────
-const ENTROPY_NOTE = `// _entropy() is fine for a free game: it only decides tile
-// spawns / trophy timing, so a predictable value cannot steal
-// anything. If you EVER add real value, swap it for Chainlink
-// VRF v2.5 first (docs.chain.link/vrf/v2-5).`;
-
 const TEST_COMMANDS = `# one-time
 forge install foundry-rs/forge-std --no-commit
+forge install smartcontractkit/chainlink --no-commit
 
-# run everything (deploys the contract in every test)
+# run everything (deploys the contract + a mock VRF coordinator)
 forge test -vv
 
 # gas report per function
@@ -191,8 +196,8 @@ export function SecurityReview() {
       <SectionHeader
         index="05"
         kicker="Audit yourself"
-        title="Security review — free-to-play edition"
-        lead="With the entry fee, pot, house cut and every withdrawal removed, the attack surface collapses. Here is the honest, line-by-line picture of what remains."
+        title="Security review — VRF edition"
+        lead="Free to play, no owner, no money flow — and tile spawns now come from Chainlink VRF v2.5 instead of predictable blockhash entropy. Here is the honest, line-by-line picture of what remains."
       />
 
       {/* verdict */}
@@ -215,16 +220,16 @@ export function SecurityReview() {
           <div className="rounded-2xl border border-base/30 bg-base/[0.05] p-6">
             <p className="mb-2 flex items-center gap-2 font-display text-lg text-base-bright">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5" strokeLinecap="round" />
-                <circle cx="12" cy="16.2" r="1" fill="currentColor" />
+                <path d="M12 2v4m0 12v4M2 12h4m12 0h4" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="5" />
               </svg>
-              Remaining consideration — entropy
+              Randomness — Chainlink VRF v2.5, built in
             </p>
             <p className="text-[13px] leading-7 text-slate-300">
-              The only thing left to think about is <span className="font-mono text-base-bright">_entropy()</span>, which is
-              predictable. Because nothing of value is at stake, that only affects which tiles spawn and when a trophy
-              can be minted — scoreboard cosmetics. If real value were ever added, swap it for Chainlink VRF first.
+              The old predictable entropy is gone. <span className="font-mono text-base-bright">move()</span> commits the
+              deterministic slide/merge, then the tile spawns only when the Chainlink node fulfils the request with
+              verified random words — no validator or player contract can foresee or steer it. The operational tail:
+              keep the VRF subscription topped up with LINK.
             </p>
           </div>
         </div>
@@ -303,22 +308,39 @@ export function SecurityReview() {
             </div>
           </Reveal>
 
-          {/* entropy note */}
+          {/* VRF wiring */}
           <Reveal delay={80}>
             <div className="overflow-hidden rounded-2xl border border-line bg-[#050b1c]">
               <div className="flex items-center justify-between border-b border-line bg-panel px-4 py-3">
-                <p className="font-display text-sm text-white">Why predictable entropy is acceptable here</p>
+                <p className="font-display text-sm text-white">Wiring Chainlink VRF — the three constructor values</p>
                 <a
-                  href="https://docs.chain.link/vrf/v2-5"
+                  href="https://docs.chain.link/vrf/v2-5/supported-networks"
                   target="_blank"
                   rel="noreferrer"
                   className="font-mono text-[10px] text-cyan-bright hover:underline underline-offset-2"
                 >
-                  VRF docs ↗
+                  supported networks ↗
                 </a>
               </div>
-              <pre className="overflow-x-auto code-scroll p-4 font-mono text-[11.5px] leading-[1.7] text-slate-400">
-                {ENTROPY_NOTE}
+              <div className="space-y-2.5 p-4">
+                {VRF_NETWORKS.map((n) => (
+                  <div key={n.label} className="rounded-lg border border-line/60 bg-ink/60 px-3.5 py-3">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="font-display text-[12px] text-white">{n.label}</span>
+                      <span className="font-mono text-[9px] text-slate-600">{n.keyHashNote}</span>
+                    </div>
+                    <p className="font-mono text-[10.5px] leading-5 text-slate-400 break-all">
+                      coordinator <span className="text-mint">{n.coordinator}</span>
+                      <br />
+                      keyHash <span className="text-mint">{n.keyHash}</span>
+                      <br />
+                      subId <span className="text-amber">&lt;from your vrf.chain.link subscription&gt;</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <pre className="overflow-x-auto code-scroll border-t border-line/60 p-4 font-mono text-[11.5px] leading-[1.7] text-slate-400">
+                {VRF_SETUP}
               </pre>
             </div>
           </Reveal>

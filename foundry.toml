@@ -3,7 +3,10 @@ src = "contracts"
 out = "out"
 libs = ["lib"]
 test = "test"
-remappings = ["forge-std/=lib/forge-std/src/"]
+remappings = [
+    "forge-std/=lib/forge-std/src/",
+    "@chainlink/contracts/=lib/chainlink/contracts/",
+]
 # 0.8.36 is the first release where both of the banner bugs are fixed:
 # SOL-2026-2 (UnsoundSpillInMutualRecursion) & SOL-2026-3 (InheritanceOrderReversal...)
 solc_version = "0.8.36"

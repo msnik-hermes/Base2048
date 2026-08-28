@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { DEPLOY_MAINNET, DEPLOY_TESTNET, INTERACT_COMMANDS } from '../data/contract';
+import { DEPLOY_MAINNET, DEPLOY_TESTNET, INTERACT_COMMANDS, VRF_SETUP } from '../data/contract';
 import { randomHash } from '../game/logic';
 import { fmtInt } from '../hooks/useBaseChain';
 import { Reveal, SectionHeader } from './ui';
@@ -168,29 +168,35 @@ export function DeploySection({ liveBlock }: { liveBlock: number }) {
       <SectionHeader
         index="04"
         kicker="Ship to Base"
-        title="Deploy to Base in three commands"
-        lead="The contract is a single file and only needs Foundry. Test it on Base Sepolia first, then ship to mainnet with verification on Basescan — Base's 2-second blocks mean every game move lands almost instantly."
+        title="Deploy to Base — VRF-powered"
+        lead="A single-file contract plus one Chainlink VRF v2.5 subscription. Test it on Base Sepolia first, then ship to mainnet with verification on Basescan — on Base the randomness fulfilment lands a couple of seconds after each move."
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] items-start">
         <div className="space-y-6">
           <CodeBlock
+            title="0 · Chainlink VRF setup (one-time)"
+            code={VRF_SETUP}
+            note="The subscription id plus the network's coordinator & key hash are the three constructor arguments below."
+          />
+          <CodeBlock
             title="1 · deploy → Base Sepolia"
             code={DEPLOY_TESTNET}
-            note="Grab test ETH from faucet.base.org. WALLET_ALIAS is the output of cast wallet import."
+            note="Grab test ETH from faucet.base.org and test LINK from faucets.chain.link. VRF_SUB_ID is on your vrf.chain.link subscription page."
           />
           <CodeBlock
             title="2 · deploy → Base Mainnet"
             code={DEPLOY_MAINNET}
-            note="No constructor arguments — the contract is free-to-play by design. At current Base gas prices the whole deployment costs pennies."
+            note="Same flow with mainnet values from docs.chain.link/vrf/v2-5/supported-networks. At current Base gas prices the deployment costs pennies."
           />
           <CodeBlock
             title="3 · verify the source on Basescan"
             code={`# Basescan → your contract → "Verify and Publish"
-#   Method:  Solidity (Single file)
+#   Method:  Solidity (Standard-Json-Input recommended — the contract
+#            imports @chainlink/contracts, so flatten first if single-file)
 #   Compiler: v0.8.36  ·  Optimization: Yes (200)  ·  viaIR: No
-#   Constructor args: none`}
-            note="Deployed with Remix? The same fields work in the Basescan web form — paste the exact source from this page. Verified contracts show readable code and a Read/Write console on Basescan."
+#   Constructor args: ABI-encoded (coordinator, subId, keyHash)`}
+            note="Deployed with Remix? Remix already resolved the Chainlink imports — use its flattened output for verification. Verified contracts show readable code and a Read/Write console on Basescan."
           />
           <CodeBlock title="4 · play from the command line" code={INTERACT_COMMANDS} />
         </div>

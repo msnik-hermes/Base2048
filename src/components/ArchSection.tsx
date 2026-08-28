@@ -14,7 +14,7 @@ const KIND_LABEL: Record<string, string> = {
   payable: 'payable',
   write: 'write',
   view: 'view',
-  owner: 'onlyOwner',
+  owner: 'restricted',
 };
 
 function PackingViz({ tiles }: { tiles: Tile[] }) {
@@ -140,8 +140,8 @@ const MECHANICS = [
   },
   {
     num: '02',
-    title: 'Move = move(dir) transaction',
-    text: 'Slide and merge with pure bit ops on nibbles; up/down run through the matrix transpose as left/right. A fresh tile spawns from blockhash entropy afterwards.',
+    title: 'Move = commit, then VRF reveal',
+    text: 'Slide and merge are pure bit ops on nibbles (up/down run through the transpose), so they land in your move(dir) tx. The new tile spawns when Chainlink VRF fulfils the request — verified randomness, no blockhash tricks.',
     color: 'text-cyan-bright',
   },
   {

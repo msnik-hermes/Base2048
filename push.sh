@@ -16,7 +16,7 @@ git add .
 if git diff --cached --quiet; then
   echo "→ Nothing new to commit."
 else
-  git commit -m "Onchain 2048 on Base — Solidity game + ERC-721 trophy + React frontend"
+  git commit -m "Onchain 2048 on Base — Chainlink VRF randomness, ERC-721 trophy, Foundry tests + React frontend"
 fi
 
 # 3. Make sure we are on 'main'

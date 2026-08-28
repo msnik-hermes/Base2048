@@ -69,7 +69,7 @@ export function ContractSection() {
         index="02"
         kicker="Smart Contract · ERC-721"
         title="The code, ready to compile"
-        lead="Single file, zero dependencies, Solidity 0.8.24. Custom errors instead of string reverts, events for every move — and a self-contained ERC-721 whose SVG metadata is generated inside tokenURI(). This is the exact contract the game above simulates."
+        lead="One Solidity file plus the two official Chainlink VRF imports, compiled with 0.8.36. Randomness via VRF v2.5 commit–reveal, custom errors instead of string reverts, and a self-contained ERC-721 whose SVG metadata is generated inside tokenURI(). This is the exact contract the game above simulates."
       />
 
       <Reveal>
@@ -92,7 +92,7 @@ export function ContractSection() {
             </div>
             <div className="flex items-center gap-2">
               <span className="mr-2 hidden md:inline font-mono text-[11px] text-slate-500">
-                {lines.length} lines · ~14 KB
+                {lines.length} lines · {(SOLIDITY_SOURCE.length / 1024).toFixed(1)} KB
               </span>
               <button
                 onClick={copy}
@@ -150,10 +150,10 @@ export function ContractSection() {
       <Reveal delay={120}>
         <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 text-[13px] text-slate-400">
           <span className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-sm bg-base-bright" /> 9 events — every move + every mint indexed
+            <span className="h-2 w-2 rounded-sm bg-base-bright" /> 10 events — commit, fulfil, win, mint
           </span>
           <span className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-sm bg-mint" /> 13 custom errors — no reason strings
+            <span className="h-2 w-2 rounded-sm bg-mint" /> 12 custom errors — no reason strings
           </span>
           <span className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-sm bg-gold" /> NFT trophy minted at score 4096, one per player
@@ -162,7 +162,7 @@ export function ContractSection() {
             <span className="h-2 w-2 rounded-sm bg-amber" /> tokenURI() renders the board as SVG on-chain
           </span>
           <span className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-sm bg-rose" /> blockhash entropy — use a VRF for real stakes
+            <span className="h-2 w-2 rounded-sm bg-cyan-bright" /> Chainlink VRF v2.5 commit–reveal randomness
           </span>
         </div>
       </Reveal>

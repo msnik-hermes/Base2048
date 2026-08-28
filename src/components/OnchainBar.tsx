@@ -8,6 +8,7 @@ const RUN_BADGE: Record<number, { label: string; cls: string }> = {
   1: { label: 'Run active', cls: 'bg-mint/15 text-mint border-mint/40' },
   2: { label: 'Run won · 2048', cls: 'bg-gold/15 text-gold border-gold/40' },
   3: { label: 'Game over', cls: 'bg-rose/15 text-rose border-rose/40' },
+  4: { label: 'Awaiting Chainlink VRF…', cls: 'bg-amber/15 text-amber border-amber/40' },
 };
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;

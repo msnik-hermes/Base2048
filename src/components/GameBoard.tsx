@@ -182,8 +182,8 @@ export function GameBoard({
         <div className="overlay absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[rgba(4,10,28,0.78)] backdrop-blur-[2px]">
           <p className="font-display text-3xl text-white">No active run</p>
           <p className="max-w-[280px] text-center text-sm leading-6 text-slate-400">
-            This wallet has no run on the contract yet — <span className="font-mono text-cyan-bright">start()</span> spawns
-            two tiles. It's free; you only pay the Base tx fee.
+            This wallet has no run on the contract yet — <span className="font-mono text-cyan-bright">start()</span> asks
+            Chainlink VRF for two random tiles (they land in a few seconds). It's free; you only pay the Base tx fee.
           </p>
           <ActionButton variant="amber" onClick={onRestart}>
             start() — new run

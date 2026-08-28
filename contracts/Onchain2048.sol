@@ -1,35 +1,54 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+
 /// ═══════════════════════════════════════════════════════════════
-///  ONCHAIN 2048 — Base · free-to-play · ERC-721 trophy edition
+///  ONCHAIN 2048 — Base · Chainlink VRF edition · free-to-play
 ///  ─────────────────────────────────────────────────────────────
 ///  The entire game state lives in a single storage slot:
 ///    • the 4×4 board is packed into one uint64 (16 × 4-bit nibbles)
 ///    • each nibble stores a power of two: 1 → 2 … 11 → 2048, 0 = empty
-///    • every move is one move(dir) transaction
 ///
-///  Free to play — there is NO entry fee, NO pot and NO house cut.
-///  The only cost is the Base network transaction fee. There is no
-///  owner and no way to withdraw value, so nothing can be rug-pulled.
-///  The first time a player pushes their score to 4096, the contract
-///  mints them a one-of-one ERC-721 trophy whose metadata — an SVG
-///  render of the board at mint time — is generated fully on-chain.
+///  Randomness comes from Chainlink VRF v2.5 via commit–reveal:
+///    • start() / move(dir) apply everything deterministic immediately,
+///      then request random words from the VRF coordinator
+///    • fulfillRandomWords() spawns the new tile(s) a couple of blocks
+///      later and finalises the win / game-over / NFT-trophy checks
+///  Spawns can no longer be predicted or steered by validators or by
+///  try/catch player contracts — the random words only exist once the
+///  Chainlink node fulfils the request.
+///
+///  Free to play — NO entry fee, NO pot, NO house cut, NO withdrawals
+///  and NO owner logic. The only cost is the Base transaction fee and
+///  the contract balance is always 0.
+///
+///  The first time a player's score crosses 4096, a one-of-one ERC-721
+///  trophy is minted; its metadata — an SVG render of the frozen board —
+///  is generated fully on-chain inside tokenURI(). No IPFS, no servers.
 /// ═══════════════════════════════════════════════════════════════
 
 interface IERC721Receiver {
     function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4);
 }
 
-contract Onchain2048 {
+contract Onchain2048 is VRFConsumerBaseV2Plus {
     uint8   public constant SIZE          = 4;
     uint8   public constant WIN_EXP       = 11;          // 2^11 = 2048
     uint256 public constant NFT_THRESHOLD = 4096;        // score that mints the trophy
+
+    // ── Chainlink VRF v2.5 parameters ───────────────────────────
+    uint256 public immutable vrfSubId;
+    bytes32 public immutable vrfKeyHash;
+    uint16  public constant VRF_CONFIRMATIONS  = 3;
+    uint32  public constant VRF_CALLBACK_GAS   = 300_000; // room for spawn + win + NFT mint
 
     uint8 internal constant ST_NONE    = 0;
     uint8 internal constant ST_ACTIVE  = 1;
     uint8 internal constant ST_WON     = 2;
     uint8 internal constant ST_OVER    = 3;
+    uint8 internal constant ST_PENDING = 4;              // waiting for the VRF fulfilment
 
     struct Run {
         uint64 board;    // nibble of cell (r,c) lives in bits r*16 + c*4
@@ -38,7 +57,18 @@ contract Onchain2048 {
         uint8  state;
     }
 
+    struct PendingMove {
+        address player;
+        uint8   dir;
+        uint32  gained;
+    }
+
     mapping(address => Run) private _runs;
+
+    // requestId → what is waiting for the random words
+    mapping(uint256 => address)     private _pendingStart;
+    mapping(uint256 => PendingMove) private _pendingMove;
+    mapping(address => bool)        private _awaitingMove;   // one in-flight move per player
 
     // ── ERC-721 trophy (minimal, self-contained — no imports) ──
     string public constant name   = "Onchain 2048";
@@ -55,6 +85,7 @@ contract Onchain2048 {
     mapping(address => uint256) public nftOf;            // 0 = trophy not earned yet
 
     event RunStarted(address indexed player, uint64 board);
+    event MoveCommitted(address indexed player, uint8 dir, uint64 board, uint40 score);
     event Moved(address indexed player, uint8 dir, uint64 board, uint40 score, uint32 gained);
     event Win(address indexed player, uint64 board);
     event GameOver(address indexed player, uint40 score);
@@ -68,6 +99,8 @@ contract Onchain2048 {
     error NotActive();
     error InvalidDirection();
     error NoopMove();
+    error RunBusy();
+    error PendingRandomness();
     error ZeroAddress();
     error TokenGone();
     error NotAuthorized();
@@ -75,18 +108,50 @@ contract Onchain2048 {
     error SelfApproval();
     error UnsafeRecipient();
 
-    // ── Start a new run — free, only costs the Base tx fee ──────
-    function start() external {
-        uint256 entropy = _entropy(msg.sender, 0);
-        uint64 board = _spawn(_spawn(0, entropy), entropy >> 48);
-        _runs[msg.sender] = Run({board: board, score: 0, moves: 0, state: ST_ACTIVE});
-        emit RunStarted(msg.sender, board);
+    /// @param vrfCoordinator_ Chainlink VRF v2.5 coordinator of the target network
+    /// @param vrfSubId_       id of your funded VRF subscription (vrf.chain.link)
+    /// @param vrfKeyHash_     key hash for the network (docs.chain.link/vrf/v2-5/supported-networks)
+    constructor(address vrfCoordinator_, uint256 vrfSubId_, bytes32 vrfKeyHash_)
+        VRFConsumerBaseV2Plus(vrfCoordinator_)
+    {
+        vrfSubId = vrfSubId_;
+        vrfKeyHash = vrfKeyHash_;
     }
 
-    // ── Play a move: 0=left 1=right 2=up 3=down ─────────────────
+    // ── Start a new run (free — only the Base tx fee) ───────────
+    // Requests two random words; fulfillRandomWords spawns the tiles.
+    function start() external {
+        Run storage run = _runs[msg.sender];
+        if (run.state == ST_ACTIVE || run.state == ST_PENDING || _awaitingMove[msg.sender]) {
+            revert RunBusy();
+        }
+        run.board = 0;
+        run.score = 0;
+        run.moves = 0;
+        run.state = ST_PENDING;
+
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: vrfKeyHash,
+                subId: vrfSubId,
+                requestConfirmations: VRF_CONFIRMATIONS,
+                callbackGasLimit: VRF_CALLBACK_GAS,
+                numWords: 2,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            })
+        );
+        _pendingStart[requestId] = msg.sender;
+    }
+
+    // ── Commit a move: 0=left 1=right 2=up 3=down ───────────────
+    // Slide + merge are deterministic, so they land in this tx.
+    // The spawn waits for the VRF fulfilment (a few seconds on Base).
     function move(uint8 dir) external {
         Run storage run = _runs[msg.sender];
         if (run.state != ST_ACTIVE) revert NotActive();
+        if (_awaitingMove[msg.sender]) revert PendingRandomness();
         if (dir > 3) revert InvalidDirection();
 
         uint64 b = run.board;
@@ -104,32 +169,75 @@ contract Onchain2048 {
         }
 
         if (dir >= 2) nb = _transpose(nb);
-        if (nb == run.board) revert NoopMove();          // no-op → revert, no gas wasted
+        if (nb == run.board) revert NoopMove();          // no-op → revert, no VRF fee wasted
 
-        run.moves += 1;
-        nb = _spawn(nb, _entropy(msg.sender, run.moves));
         run.board = nb;
         run.score += uint40(gained);
-        emit Moved(msg.sender, dir, nb, run.score, gained);
+        run.moves += 1;
+        emit MoveCommitted(msg.sender, dir, nb, run.score);
 
-        // Trophy: the first time a player's score reaches 4096,
-        // mint their one-of-one NFT with the board frozen in it.
-        if (nftOf[msg.sender] == 0 && run.score >= NFT_THRESHOLD) {
-            uint256 id = _nextTokenId++;
-            _snapshots[id] = Snapshot(nb, run.score, run.moves);
-            _owners[id] = msg.sender;
-            unchecked { _balances[msg.sender] += 1; }
-            nftOf[msg.sender] = id;
-            emit Transfer(address(0), msg.sender, id);
-            emit RewardMinted(msg.sender, id, run.score, nb);
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: vrfKeyHash,
+                subId: vrfSubId,
+                requestConfirmations: VRF_CONFIRMATIONS,
+                callbackGasLimit: VRF_CALLBACK_GAS,
+                numWords: 1,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            })
+        );
+        _pendingMove[requestId] = PendingMove(msg.sender, dir, gained);
+        _awaitingMove[msg.sender] = true;
+    }
+
+    // ── Chainlink VRF fulfilment — reveal phase ─────────────────
+    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
+        // 1) fresh run → spawn the first two tiles
+        address starter = _pendingStart[requestId];
+        if (starter != address(0)) {
+            delete _pendingStart[requestId];
+            Run storage run = _runs[starter];
+            if (run.state != ST_PENDING) return;         // stale request, ignore
+            uint64 b = _spawn(_spawn(0, randomWords[0]), randomWords[1]);
+            run.board = b;
+            run.state = ST_ACTIVE;
+            emit RunStarted(starter, b);
+            return;
         }
 
-        if (_maxExp(nb) >= WIN_EXP) {
+        // 2) committed move → spawn one tile, then finalise the run
+        PendingMove memory pm = _pendingMove[requestId];
+        if (pm.player == address(0)) return;             // unknown / stale request
+        delete _pendingMove[requestId];
+
+        Run storage run = _runs[pm.player];
+        _awaitingMove[pm.player] = false;
+        if (run.state != ST_ACTIVE) return;              // run was reset meanwhile
+
+        uint64 b = _spawn(run.board, randomWords[0]);
+        run.board = b;
+        emit Moved(pm.player, pm.dir, b, run.score, pm.gained);
+
+        // Trophy: first time the score crosses 4096 — one per player,
+        // minted with the final board frozen into its on-chain SVG.
+        if (nftOf[pm.player] == 0 && run.score >= NFT_THRESHOLD) {
+            uint256 id = _nextTokenId++;
+            _snapshots[id] = Snapshot(b, run.score, run.moves);
+            _owners[id] = pm.player;
+            unchecked { _balances[pm.player] += 1; }
+            nftOf[pm.player] = id;
+            emit Transfer(address(0), pm.player, id);
+            emit RewardMinted(pm.player, id, run.score, b);
+        }
+
+        if (_maxExp(b) >= WIN_EXP) {
             run.state = ST_WON;
-            emit Win(msg.sender, nb);
-        } else if (!_hasMoves(nb)) {
+            emit Win(pm.player, b);
+        } else if (!_hasMoves(b)) {
             run.state = ST_OVER;
-            emit GameOver(msg.sender, run.score);
+            emit GameOver(pm.player, run.score);
         }
     }
 
@@ -138,6 +246,7 @@ contract Onchain2048 {
     function scoreOf(address p) external view returns (uint40) { return _runs[p].score; }
     function stateOf(address p) external view returns (uint8)  { return _runs[p].state; }
     function movesOf(address p) external view returns (uint32) { return _runs[p].moves; }
+    function awaitingMove(address p) external view returns (bool) { return _awaitingMove[p]; }
 
     /// Board as an array of 16 exponents — cell i = (i/4, i%4)
     function gridOf(address p) external view returns (uint8[16] memory g) {
@@ -238,7 +347,7 @@ contract Onchain2048 {
             '},{"trait_type":"Network","value":"Base"}],',
             '"image":"data:image/svg+xml;base64,', _base64(bytes(svg)), '"}'
         );
-        return string.concat('data:application/json;base64,', _base64(bytes(json)));
+        return string.concat("data:application/json;base64,", _base64(bytes(json)));
     }
 
     function _svg(Snapshot memory s, uint256 id) internal pure returns (string memory svg) {
@@ -360,7 +469,7 @@ contract Onchain2048 {
                 out |= ((b >> (16 * r + 4 * c)) & 0xF) << (16 * c + 4 * r);
     }
 
-    /// Spawn a new tile: 90% → 2, 10% → 4
+    /// Spawn a new tile from VRF entropy: 90% → 2, 10% → 4
     function _spawn(uint64 b, uint256 entropy) internal pure returns (uint64) {
         uint8 empties;
         for (uint8 i = 0; i < 16; i++) if (((b >> (4 * i)) & 0xF) == 0) empties++;
@@ -393,16 +502,5 @@ contract Onchain2048 {
                 if (r < 3 && v == uint8((b >> (16 * (r + 1) + 4 * c)) & 0xF)) return true;
             }
         return false;
-    }
-
-    /// On-chain entropy. With no pot at stake this only decides tile
-    /// spawns / trophy timing, so predictable entropy is acceptable.
-    function _entropy(address p, uint256 nonce) internal view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(
-            blockhash(block.number - 1),
-            block.timestamp,
-            p,
-            nonce
-        )));
     }
 }

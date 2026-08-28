@@ -42,24 +42,29 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 
 const STEPS = [
   {
-    title: 'Fund a wallet (or skip it)',
-    body: 'For a real Base Sepolia test grab ~0.001 ETH from the faucet — enough to deploy and play dozens of moves. Want zero cost? Use the built-in Remix VM instead and skip this step entirely.',
-    chips: ['faucet.base.org', '≈ 0.001 ETH'],
+    title: 'Fund a wallet + test LINK',
+    body: 'For a real Base Sepolia test grab ~0.001 ETH from faucet.base.org (deploy + dozens of moves) and some test LINK from the Chainlink faucet — LINK pays the VRF requests, ETH only pays gas.',
+    chips: ['faucet.base.org', 'faucets.chain.link', '≈ 0.001 ETH + 1 LINK'],
   },
   {
     title: 'Load the contract into Remix',
-    body: 'Open remix.ethereum.org → File Explorer → new file Onchain2048.sol → paste the source (or drop in the file you downloaded from this page). In the Solidity Compiler tab pick 0.8.36 or newer (anything ≥ 0.8.24 compiles, but 0.8.29–0.8.35 show Basescan\u2019s two compiler-bug advisories even though this code can\u2019t trigger either — 0.8.36 clears the banner), tick Optimization (200), keep viaIR off.',
-    chips: ['solc 0.8.36 recommended', 'optimization 200', 'viaIR off', 'single file, no imports'],
+    body: 'Open remix.ethereum.org → File Explorer → new file Onchain2048.sol → paste the source (or drop in the file you downloaded from this page). Remix resolves the two @chainlink/contracts GitHub imports automatically. Pick solc 0.8.36+, tick Optimization (200), keep viaIR off, then Compile.',
+    chips: ['solc 0.8.36 recommended', 'optimization 200', 'viaIR off', '@chainlink auto-imports'],
   },
   {
-    title: 'Deploy',
-    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia), or "Remix VM (Cancun)" for local testing. Select Onchain2048 and hit Deploy — there are no constructor arguments and nothing to pay. Leave the Value field at 0.',
-    chips: ['no constructor args', 'Value = 0', 'chainId 84532'],
+    title: 'Create a VRF v2.5 subscription',
+    body: 'On vrf.chain.link switch to the Base Sepolia testnet, create a subscription, fund it with test LINK and add nothing else — the game contract is added as a consumer automatically once deployed (any contract can request; no allow-list needed for fulfilling your own requests).',
+    chips: ['vrf.chain.link', 'subscription id = subId'],
+  },
+  {
+    title: 'Deploy with the three VRF values',
+    body: 'Deploy & Run → Environment: "Injected Provider – MetaMask" (wallet on Base Sepolia). Constructor args: the Base Sepolia coordinator 0x5C210eF41CD1a72de73bF76eC39637bB0d3d7BEE, your subscription id, and the key hash 0x…06fc23ac00 (30 gwei). Leave the Value field at 0 — nothing is payable.',
+    chips: ['coordinator', 'subId', 'keyHash', 'Value = 0'],
   },
   {
     title: 'Play & mint',
-    body: 'Call start() — it is free, it only costs the Base tx fee. Then call move(dir) — 0 left, 1 right, 2 up, 3 down — and watch Moved events in the console. Read gridOf / scoreOf to follow your run. Push the score past 4096: nftOf(address) returns your trophy id, and tokenURI(id) returns the on-chain metadata — paste it into the decoder on the right.',
-    chips: ['start() is free', 'start() → move(dir)', '4096 → RewardMinted'],
+    body: 'Call start() — free, gas only. The two starting tiles appear a few seconds later, when Chainlink fulfils the randomness request (stateOf shows 4 = pending until then). Then move(dir) — 0 left, 1 right, 2 up, 3 down; each move merges instantly and spawns once fulfilled. Past score 4096, nftOf(address) returns your trophy id and tokenURI(id) the on-chain metadata — paste it into the decoder on the right.',
+    chips: ['two-phase moves', 'state 4 = awaiting VRF', '4096 → RewardMinted'],
   },
 ];
 
@@ -276,7 +281,7 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
                   <path d="M12 10v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                   <circle cx="12" cy="17.2" r="1.1" fill="currentColor" />
                 </svg>
-                <p className="font-display text-base text-amber">Two Remix gotchas that make transactions “revert”</p>
+                <p className="font-display text-base text-amber">Three Remix gotchas worth knowing</p>
               </div>
               <div className="mt-4 space-y-4">
                 <div className="flex gap-3">
@@ -302,6 +307,19 @@ export function RemixSection({ tiles, score, moves }: { tiles: Tile[]; score: nu
                       <span className="font-mono text-[12px] text-white">Optimization (200)</span>, recompile, and as a
                       safety net raise the <span className="font-mono text-[12px] text-slate-400">Gas limit</span> under
                       Deploy's advanced settings to <span className="font-mono text-[12px] text-white">8000000</span>.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber/20 font-mono text-[11px] font-bold text-amber">3</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">“The new tile appears a few seconds late”</p>
+                    <p className="mt-1 text-[13px] leading-6 text-slate-300">
+                      That is the Chainlink VRF commit–reveal flow working as designed: your{' '}
+                      <span className="font-mono text-[12px] text-cyan-bright">move()</span> lands the merge instantly, then the
+                      coordinator fulfils the randomness request a couple of blocks later and{' '}
+                      <span className="font-mono text-[12px] text-cyan-bright">fulfillRandomWords()</span> spawns the tile. On Base
+                      that is typically 2–5 seconds. If nothing ever spawns, check the subscription has LINK.
                     </p>
                   </div>
                 </div>

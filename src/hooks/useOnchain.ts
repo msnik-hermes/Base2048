@@ -46,6 +46,8 @@ const ABI = [
   'error NotActive()',
   'error InvalidDirection()',
   'error NoopMove()',
+  'error RunBusy()',
+  'error PendingRandomness()',
 ];
 
 export interface OcState {
@@ -71,7 +73,7 @@ function revertName(c: ContractType, e: unknown): string {
     /* fall through */
   }
   const m = String(err?.shortMessage ?? err?.reason ?? err?.message ?? '');
-  const found = m.match(/\b(NoopMove|NotActive|InvalidDirection|FeeTooLow)\b/);
+  const found = m.match(/\b(NoopMove|NotActive|InvalidDirection|RunBusy|PendingRandomness)\b/);
   if (found) return found[1];
   return m.slice(0, 110) || 'unknown revert';
 }
@@ -296,9 +298,13 @@ export function useOnchain(netId: NetId, contractAddress: string) {
         const name = revertName(w, e);
         if (name === 'NoopMove') {
           setNudgeKey((k) => k + 1);
-          setNotice('NoopMove() — that slide changes nothing, so the contract would revert. No transaction was sent, no gas spent.');
+          setNotice('NoopMove() — that slide changes nothing, so the contract would revert. No transaction was sent, no gas or LINK spent.');
         } else if (name === 'NotActive') {
           setNotice('Run is not active — hit start() to begin a new run.');
+        } else if (name === 'PendingRandomness') {
+          setNotice('The previous move is still waiting for its Chainlink VRF fulfilment — the tile lands in a couple of seconds.');
+        } else if (name === 'RunBusy') {
+          setNotice('A run is already starting (awaiting VRF). Give it a couple of seconds and try again.');
         } else {
           setNotice('Contract reverted: ' + name);
         }
