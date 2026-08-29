@@ -33,6 +33,8 @@ export interface NftReward {
   hash: string;
   block: number;
   mintKey: number;
+  /** true when this reward is the local demo simulation — no on-chain transaction happened */
+  simulated: boolean;
 }
 
 const BEST_KEY = 'base2048:best';
@@ -118,7 +120,7 @@ export function useGame(currentBlock: number, enabled: boolean) {
         mintedRef.current = true;
         const tokenId = 1023 + tokenSeq++;
         const hash = randomHash(32);
-        nftReward = { tokenId, score: newScore, hash, block: blockRef.current || 24_610_000, mintKey: Date.now() };
+        nftReward = { tokenId, score: newScore, hash, block: blockRef.current || 24_610_000, mintKey: Date.now(), simulated: true };
         setNft(nftReward);
         setNftLifetime((n) => {
           const next = n + 1;

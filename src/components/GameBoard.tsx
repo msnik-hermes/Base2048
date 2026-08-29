@@ -102,8 +102,14 @@ export function GameBoard({
               <path d="m9 12 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div>
-              <p className="font-display text-sm text-gold">NFT MINTED — TOKEN #{nft.tokenId}</p>
-              <p className="font-mono text-[10px] text-slate-400">{nft.hash.slice(0, 22)}…</p>
+              <p className="font-display text-sm text-gold">
+                {nft.simulated ? 'DEMO MINT — simulation' : `NFT MINTED — TOKEN #${nft.tokenId}`}
+              </p>
+              <p className="font-mono text-[10px] text-slate-400">
+                {nft.simulated
+                  ? 'No transaction was sent — connect a wallet on Base and cross 4096 for the real NFT.'
+                  : `${nft.hash.slice(0, 22)}…`}
+              </p>
             </div>
           </div>
         </div>

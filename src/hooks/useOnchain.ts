@@ -243,7 +243,24 @@ export function useOnchain(netId: NetId, contractAddress: string) {
           hash: lastMint?.hash ?? '',
           block: lastMint?.block ?? 0,
           mintKey: Date.now(),
+          simulated: false,
         });
+        // The trophy is minted by the VRF coordinator's fulfilment tx (not by the
+        // player's wallet), so surface it in the tx log — otherwise it looks like
+        // no mint transaction ever happened.
+        setTxs((t) => [
+          {
+            id: ocTxId++,
+            kind: 'nft' as const,
+            gained: 0,
+            score: Number(score),
+            hash: lastMint?.hash ?? '',
+            gas: lastMint?.gas ?? 0,
+            block: lastMint?.block ?? 0,
+            tokenId: nftId,
+          },
+          ...t,
+        ].slice(0, 6));
       }
       prevNftRef.current = nftId;
 

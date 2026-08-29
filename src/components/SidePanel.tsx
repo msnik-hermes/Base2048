@@ -92,9 +92,14 @@ function NftCard({
         {minted ? (
           <div className="min-w-0">
             <p className="font-display text-2xl text-gold leading-none mb-1.5">
-              TOKEN #{oc ? oc.id : nft?.tokenId}
+              {nft?.simulated ? 'SIMULATED' : `TOKEN #${oc ? oc.id : nft?.tokenId}`}
             </p>
-            {nft?.hash ? (
+            {nft?.simulated ? (
+              <p className="text-[11px] leading-5 text-slate-400">
+                Demo only — no on-chain transaction was sent. Connect a wallet on Base and cross{' '}
+                <span className="font-display text-gold">{fmtInt(NFT_THRESHOLD)}</span> to mint the real trophy.
+              </p>
+            ) : nft?.hash ? (
               <p className="font-mono text-[10px] text-slate-400 leading-5 break-all">{nft.hash.slice(0, 26)}…</p>
             ) : (
               <p className="font-mono text-[10px] text-slate-400 leading-5">minted on-chain</p>
