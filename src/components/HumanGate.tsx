@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TURNSTILE_SITE_KEY } from '../data/turnstile';
 
 declare global {
   interface Window {
@@ -6,7 +7,7 @@ declare global {
   }
 }
 
-const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+const SITE_KEY = TURNSTILE_SITE_KEY;
 
 /**
  * Renders a Cloudflare Turnstile widget and forwards the solved token to
@@ -70,7 +71,8 @@ export function HumanGate({
   if (!SITE_KEY) {
     return (
       <p className="max-w-[280px] text-center text-[12px] leading-5 text-slate-500">
-        Human check isn't configured yet — set <span className="font-mono text-cyan-bright">VITE_TURNSTILE_SITE_KEY</span>.
+        Human check isn't configured — add a Turnstile site key in{' '}
+        <span className="font-mono text-cyan-bright">src/data/turnstile.ts</span>.
       </p>
     );
   }
